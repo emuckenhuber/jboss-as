@@ -21,6 +21,8 @@
 */
 package org.jboss.as.controller;
 
+import org.jboss.dmr.ModelNode;
+
 
 /**
  * A proxy controller to be registered with a ModelController.
@@ -45,5 +47,32 @@ public interface ProxyController extends ModelController {
      * @return the address where this proxy contoller applies.
      */
     PathAddress getProxyNodeAddress();
+
+    public static final class ResultHandlerAdapter implements org.jboss.as.controller.client.ResultHandler {
+        final ResultHandler handler;
+        public ResultHandlerAdapter(final ResultHandler handler) {
+            this.handler = handler;
+        }
+        /** {@inheritDoc} */
+        @Override
+        public void handleResultFragment(String[] location, ModelNode result) {
+            handler.handleResultFragment(location, result);
+        }
+        /** {@inheritDoc} */
+        @Override
+        public void handleResultComplete() {
+            handler.handleResultComplete();
+        }
+        /** {@inheritDoc} */
+        @Override
+        public void handleCancellation() {
+            handler.handleCancellation();
+        }
+        /** {@inheritDoc} */
+        @Override
+        public void handleFailed(ModelNode failureDescription) {
+            handler.handleFailed(failureDescription);
+        }
+    }
 
 }

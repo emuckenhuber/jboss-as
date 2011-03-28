@@ -22,49 +22,41 @@
 
 package org.jboss.as.host.controller;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.AUTO_START;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RUNNING_SERVER;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
-
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
-import org.jboss.as.controller.remote.RemoteProxyController;
 import org.jboss.as.domain.controller.DomainController;
+import org.jboss.as.host.controller.operations.ServerAddHandler;
+import org.jboss.as.host.controller.operations.ServerRemoveHandler;
 import org.jboss.as.host.controller.operations.ServerRestartHandler;
 import org.jboss.as.host.controller.operations.ServerStartHandler;
 import org.jboss.as.host.controller.operations.ServerStatusHandler;
 import org.jboss.as.host.controller.operations.ServerStopHandler;
 import org.jboss.as.process.ProcessInfo;
-import org.jboss.as.protocol.Connection;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 
 import java.util.Map;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
 
 /**
  * @author Emanuel Muckenhuber
  */
 public class HostControllerImpl implements HostController {
 
-
     private static final Logger log = Logger.getLogger("org.jboss.as.host.controller");
 
     private final String name;
     private final ServerInventory serverInventory;
-    private final ModelNode model;
     private final ModelNodeRegistration registry;
 
     private volatile DomainController domainController;
 
     // FIXME do not leak the model and registry like this!!!!
-    HostControllerImpl(final String name, final ModelNode model, final ExtensibleConfigurationPersister configurationPersister,
+    HostControllerImpl(final String name, final ExtensibleConfigurationPersister configurationPersister,
             final ModelNodeRegistration registry, final ServerInventory serverInventory) {
-        this.model = model;
         this.registry = registry;
         this.name = name;
         this.serverInventory = serverInventory;
@@ -81,6 +73,11 @@ public class HostControllerImpl implements HostController {
     public ServerStatus getServerStatus(String serverName) {
         final ServerInventory servers = this.serverInventory;
         return servers.determineServerStatus(serverName);
+    }
+
+    @Override
+    public void addServer(final String name) {
+        serverInventory.addServer(name);
     }
 
     /** {@inheritDoc} */
@@ -120,21 +117,6 @@ public class HostControllerImpl implements HostController {
     public ServerStatus stopServer(String serverName, int gracefulTimeout) {
         final ServerInventory servers = this.serverInventory;
         return servers.stopServer(serverName, gracefulTimeout);
-    }
-
-    @Override
-    public void registerRunningServer(String serverName, Connection connection) {
-        final PathElement element = PathElement.pathElement(RUNNING_SERVER, serverName);
-        final ProxyController serverController = RemoteProxyController.create(connection, PathAddress.pathAddress(PathElement.pathElement(HOST, name), element));
-        registry.registerProxyController(element, serverController);
-        model.get(element.getKey(), element.getValue());
-    }
-
-    @Override
-    public void unregisterRunningServer(String serverName) {
-        PathElement element = PathElement.pathElement(RUNNING_SERVER, serverName);
-        model.get(element.getKey()).remove(element.getValue());
-        registry.unregisterProxyController(element);
     }
 
     @Override
@@ -203,6 +185,10 @@ public class HostControllerImpl implements HostController {
         }
     }
 
+    public void removeServer(final String name) {
+        serverInventory.removeServer(name);
+    }
+
     ModelNode getHostModel() {
         if(domainController == null) {
             throw new IllegalStateException();
@@ -211,6 +197,7 @@ public class HostControllerImpl implements HostController {
     }
 
     protected void registerInternalOperations() {
+
         ServerStartHandler startHandler = new ServerStartHandler(this);
         ServerRestartHandler restartHandler = new ServerRestartHandler(this);
         ServerStopHandler stopHandler = new ServerStopHandler(this);
@@ -220,6 +207,6 @@ public class HostControllerImpl implements HostController {
         servers.registerOperationHandler(ServerStartHandler.OPERATION_NAME, startHandler, startHandler, false);
         servers.registerOperationHandler(ServerRestartHandler.OPERATION_NAME, restartHandler, restartHandler, false);
         servers.registerOperationHandler(ServerStopHandler.OPERATION_NAME, stopHandler, stopHandler, false);
-
     }
+
 }

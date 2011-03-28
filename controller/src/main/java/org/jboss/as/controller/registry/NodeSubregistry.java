@@ -55,7 +55,7 @@ final class NodeSubregistry {
     }
 
     Set<String> getChildNames(){
-        final Map<String, AbstractNodeRegistration> snapshot = this.childRegistries;
+        final Map<String, AbstractNodeRegistration> snapshot = childRegistriesUpdater.get(this);
         if (snapshot == null) {
             return Collections.emptySet();
         }
@@ -165,7 +165,7 @@ final class NodeSubregistry {
         if (childRegistry == null) {
             childRegistry = snapshot.get("*");
             if (childRegistry == null) {
-                return null;
+                return Collections.emptySet();
             }
         }
         return childRegistry.getChildNames(iterator);
@@ -177,7 +177,7 @@ final class NodeSubregistry {
         if (childRegistry == null) {
             childRegistry = snapshot.get("*");
             if (childRegistry == null) {
-                return null;
+                return Collections.emptySet();
             }
         }
         return childRegistry.getAttributeNames(iterator);
@@ -198,14 +198,13 @@ final class NodeSubregistry {
         }
     }
 
-
     Set<PathElement> getChildAddresses(final Iterator<PathElement> iterator, final String child){
         final Map<String, AbstractNodeRegistration> snapshot = childRegistries;
         AbstractNodeRegistration childRegistry = snapshot.get(child);
         if (childRegistry == null) {
             childRegistry = snapshot.get("*");
             if (childRegistry == null) {
-                return null;
+                return Collections.emptySet();
             }
         }
         return childRegistry.getChildAddresses(iterator);
@@ -215,8 +214,10 @@ final class NodeSubregistry {
         final Map<String, AbstractNodeRegistration> snapshot = childRegistries;
         AbstractNodeRegistration childRegistry = snapshot.get(child);
         if (childRegistry == null) {
-            //Don't handle '*' for now
-            return null;
+            childRegistry = snapshot.get("*");
+            if (childRegistry == null) {
+                return null;
+            }
         }
         return childRegistry.getProxyController(iterator);
     }
@@ -235,8 +236,10 @@ final class NodeSubregistry {
         if (child != null) {
             AbstractNodeRegistration childRegistry = snapshot.get(child);
             if (childRegistry == null) {
-                //Don't handle '*' for now
-                return;
+                childRegistry = snapshot.get("*");
+                if(childRegistry == null) {
+                    return;
+                }
             }
             childRegistry.getProxyControllers(iterator, controllers);
         } else {

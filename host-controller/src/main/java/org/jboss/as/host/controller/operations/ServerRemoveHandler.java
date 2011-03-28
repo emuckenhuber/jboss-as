@@ -31,27 +31,29 @@ import org.jboss.as.controller.ModelRemoveOperationHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationResult;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ResultHandler;
+import org.jboss.as.controller.RuntimeTask;
+import org.jboss.as.controller.RuntimeTaskContext;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.common.InterfaceDescription;
 import org.jboss.as.host.controller.descriptions.HostServerDescription;
 import org.jboss.dmr.ModelNode;
 
+
 /**
- * {@code OperationHandler} removing an existing server configuration.
+ * {@code OperationHandler} removing a server instance.
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
 public class ServerRemoveHandler implements ModelRemoveOperationHandler, DescriptionProvider {
 
     public static final String OPERATION_NAME = REMOVE;
-
     public static final ServerRemoveHandler INSTANCE = new ServerRemoveHandler();
 
-    /**
-     * Create the InterfaceRemoveHandler
-     */
-    protected ServerRemoveHandler() {
+    private ServerRemoveHandler() {
+        //
     }
 
     /**

@@ -22,6 +22,10 @@
 
 package org.jboss.as.host.controller;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
+
+import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
@@ -34,6 +38,8 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+
+import java.util.Set;
 
 /**
  * Service creating the host controller.
@@ -63,9 +69,21 @@ public class HostControllerService implements Service<LocalHostModel> {
     @Override
     public synchronized void start(StartContext context) throws StartException {
         final ServerInventory serverInventory = this.serverInventory.getValue();
-        final HostControllerImpl controller = new HostControllerImpl(name, hostModel, configPersister, registry, serverInventory);
-        serverInventory.setHostController(controller);
+
+
+        final HostControllerImpl controller = new HostControllerImpl(name, configPersister, registry, serverInventory);
         controller.registerInternalOperations();
+
+        final ServerNodeRegistration nodeRegistration = new ServerNodeRegistration(name, serverInventory);
+        ServerInventoryUtils.registerServerOperations(nodeRegistration, controller);
+        registry.registerSubModel(PathElement.pathElement(SERVER), nodeRegistration);
+
+        // FIXME move to ServerAddHandler runtimeContext
+        final Set<String> serverNames = hostModel.get(SERVER_CONFIG).keys();
+        for(final String serverName : serverNames) {
+            serverInventory.addServer(serverName);
+        }
+
         this.proxyController = new LocalHostModel() {
 
             @Override

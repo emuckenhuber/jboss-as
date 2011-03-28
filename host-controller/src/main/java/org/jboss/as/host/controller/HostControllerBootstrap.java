@@ -159,13 +159,16 @@ public class HostControllerBootstrap {
 
         final String mgmtNetwork = hostModelNode.get(MANAGEMENT_INTERFACES, NATIVE_INTERFACE, INTERFACE).asString();
         final int mgmtPort = hostModelNode.get(MANAGEMENT_INTERFACES, NATIVE_INTERFACE, PORT).asInt();
-        final ServerInventoryService inventory = new ServerInventoryService(environment, mgmtPort);
-        serviceTarget.addService(ServerInventoryService.SERVICE_NAME, inventory)
-                .addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, inventory.getClient())
-                .addDependency(NetworkInterfaceService.JBOSS_NETWORK_INTERFACE.append(mgmtNetwork), NetworkInterfaceBinding.class, inventory.getInterface())
-                .install();
 
-        final HostControllerService hc = new HostControllerService(hostName, hostModelNode, configurationPersister, hostRegistry);
+        final String name = hostModelNode.get(NAME).asString();
+        final ServerInventoryService inventory = new ServerInventoryService(environment, name, mgmtPort);
+        serviceTarget.addService(ServerInventoryService.SERVICE_NAME, inventory)
+            .addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, inventory.getClient())
+            .addDependency(executorServiceName, ExecutorService.class, inventory.getExecutor())
+            .addDependency(NetworkInterfaceService.JBOSS_NETWORK_INTERFACE.append(mgmtNetwork), NetworkInterfaceBinding.class, inventory.getInterface())
+            .install();
+
+        final HostControllerService hc = new HostControllerService(name, hostModelNode, configurationPersister, hostRegistry);
         serviceTarget.addService(HostController.SERVICE_NAME, hc)
                 .addDependency(ServerInventoryService.SERVICE_NAME, ServerInventory.class, hc.getServerInventory())
                 .addDependency(ServerToHostOperationHandler.SERVICE_NAME) // make sure servers can register

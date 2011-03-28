@@ -20,38 +20,11 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.controller.persistence;
-
-import java.util.Collections;
-import java.util.List;
-
-import org.jboss.dmr.ModelNode;
-import org.jboss.staxmapper.XMLElementWriter;
+package org.jboss.as.controller.registry;
 
 /**
- * A configuration persister which does not store configuration changes.
- *
- * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
+ * @author Emanuel Muckenhuber
  */
-public final class NullConfigurationPersister extends AbstractConfigurationPersister {
+public class BasicNodeRegistry {
 
-    public NullConfigurationPersister() {
-        this(null);
-    }
-
-    public NullConfigurationPersister(XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-        super(rootDeparser);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void store(final ModelNode model) {
-        // no op
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public List<ModelNode> load() {
-        return Collections.emptyList();
-    }
 }

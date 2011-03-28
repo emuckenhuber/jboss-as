@@ -42,6 +42,14 @@ public interface HostController {
     String getName();
 
     /**
+     * Add a new managed server to the runtime.
+     *
+     * @param serverName the server name
+     * @throws IllegalStateException for a duplicate server
+     */
+    void addServer(final String serverName);
+
+    /**
      * Get the status of a server.
      *
      * @param serverName the server name
@@ -92,19 +100,11 @@ public interface HostController {
     ServerStatus stopServer(String serverName, int gracefulTimeout);
 
     /**
-     * Registers a running server in the domain model
+     * Remove a server from the runtime.
      *
-     * @param serverName the name of the server
-     * @param connection the connection to the running server
+     * @param serverName the server name to remove
      */
-    void registerRunningServer(String serverName, Connection connection);
-
-    /**
-     * Unregisters a running server from the domain model
-     *
-     * @param serverName the name of the server
-     */
-    void unregisterRunningServer(String serverName);
+    void removeServer(final String serverName);
 
     void startServers(DomainController domainController);
 

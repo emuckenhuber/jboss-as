@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2010, Red Hat, Inc., and individual contributors
+ * Copyright 2011, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -19,6 +19,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
+
 package org.jboss.as.controller.client;
 
 import static org.jboss.as.protocol.ProtocolUtils.expectHeader;
@@ -31,9 +32,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
@@ -46,29 +45,37 @@ import org.jboss.as.protocol.mgmt.ManagementRequestConnectionStrategy;
 import org.jboss.dmr.ModelNode;
 
 /**
- * Abstract superclass for {@link ModelControllerClient} implementations.
+ * Remote model controller communication support.
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
+ * @author Emanuel Muckenhuber
  */
-abstract class AbstractModelControllerClient implements ModelControllerClient {
-    final ThreadFactory threadFactory = Executors.defaultThreadFactory();
-    final ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
+public final class RemoteControllerCommunicationSupport {
 
-    public AbstractModelControllerClient() {
+    private RemoteControllerCommunicationSupport() {
+        //
     }
 
-    @Override
-    public OperationResult execute(ModelNode operation, ResultHandler handler) {
-        return execute(OperationBuilder.Factory.create(operation).build(), handler);
+    public static ModelNode execute(final Operation operation, final ManagementRequestConnectionStrategy connectionStragety) throws CancellationException, IOException {
+        if (operation == null) {
+            throw new IllegalArgumentException("Null operation");
+        }
+        try {
+            return new ExecuteSynchronousRequest(operation).executeForResult(connectionStragety);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw new IOException(e);
+            }
+            if (e.getCause() instanceof CancellationException) {
+                throw new CancellationException(e.getCause().getMessage());
+            }
+            throw new RuntimeException("Failed to execute operation ", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to execute operation ", e);
+        }
     }
 
-    @Override
-    public ModelNode execute(ModelNode operation) throws CancellationException, IOException {
-        return execute(OperationBuilder.Factory.create(operation).build());
-    }
-
-    @Override
-    public OperationResult execute(final Operation operation, final ResultHandler handler) {
+    public static OperationResult execute(final Operation operation, final ResultHandler handler, final ManagementRequestConnectionStrategy connectionStrategy, final ExecutorService executorService) {
         if (operation == null) {
             throw new IllegalArgumentException("Null operation");
         }
@@ -76,12 +83,12 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
             throw new IllegalArgumentException("Null handler");
         }
 
-        final AsynchronousOperation result = new AsynchronousOperation();
+        final AsynchronousOperation result = new AsynchronousOperation(connectionStrategy);
         executorService.execute (new Runnable() {
             @Override
             public void run() {
                 try {
-                    Future<Void> f = new ExecuteAsynchronousRequest(result, operation, handler).execute(getConnectionStrategy());
+                    Future<Void> f = new ExecuteAsynchronousRequest(result, operation, handler).execute(connectionStrategy);
 
                     while (true) {
                         try {
@@ -95,11 +102,8 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
                         }
                     }
 
-                } catch (ExecutionException e) {
-                    Throwable cause = e.getCause();
-                    handler.handleFailed(new ModelNode().set("Failed to execute operation: " + cause.toString()));
                 } catch (Exception e) {
-                    handler.handleFailed(new ModelNode().set("Failed to execute operation: " + e.toString()));
+                    throw new RuntimeException("Failed to execute operation ", e);
                 }
             }
         });
@@ -116,49 +120,15 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
         };
     }
 
-    @Override
-    public ModelNode execute(final Operation operation) throws CancellationException, IOException {
-        if (operation == null) {
-            throw new IllegalArgumentException("Null operation");
-        }
-        try {
-            return new ExecuteSynchronousRequest(operation).executeForResult(getConnectionStrategy());
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw new IOException(e);
-            }
-            if (e.getCause() instanceof CancellationException) {
-                throw new CancellationException(e.getCause().getMessage());
-            }
-            throw new RuntimeException("Failed to execute operation ", e);
-        } catch (IOException e){
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to execute operation ", e);
-        }
-    }
 
-    @Override
-    public void close() throws IOException {
-        executorService.shutdown();
-    }
-
-    abstract ManagementRequestConnectionStrategy getConnectionStrategy();
-
-    private ModelNode readNode(InputStream in) throws IOException {
-        ModelNode node = new ModelNode();
-        node.readExternal(in);
-        return node;
-    }
-
-    private abstract class ModelControllerRequest<T> extends ManagementRequest<T>{
+    private abstract static class ModelControllerRequest<T> extends ManagementRequest<T>{
         @Override
         protected byte getHandlerId() {
             return ModelControllerClientProtocol.HANDLER_ID;
         }
     }
 
-    private abstract class ExecuteRequest<T> extends ModelControllerRequest<T> {
+    private abstract static class ExecuteRequest<T> extends ModelControllerRequest<T> {
         private final Operation operation;
 
         public ExecuteRequest(Operation executionContext) {
@@ -199,7 +169,7 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
         }
     }
 
-    private class ExecuteSynchronousRequest extends ExecuteRequest<ModelNode> {
+    private static class ExecuteSynchronousRequest extends ExecuteRequest<ModelNode> {
 
         ExecuteSynchronousRequest(Operation operation) {
             super(operation);
@@ -223,7 +193,7 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
         }
     }
 
-    private class ExecuteAsynchronousRequest extends ExecuteRequest<Void> {
+    private static class ExecuteAsynchronousRequest extends ExecuteRequest<Void> {
 
         private final AsynchronousOperation result;
         private final ResultHandler handler;
@@ -297,11 +267,11 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
         }
     }
 
-    private class CancelAsynchronousOperationRequest extends ModelControllerRequest<Boolean> {
+    private static class CancelAsynchronousOperationRequest extends ModelControllerRequest<Boolean> {
 
         private final int asynchronousId;
 
-        CancelAsynchronousOperationRequest(int asynchronousId) {
+        protected CancelAsynchronousOperationRequest(int asynchronousId) {
             this.asynchronousId = asynchronousId;
         }
 
@@ -332,12 +302,17 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
 
 
 
-    private class AsynchronousOperation implements Cancellable {
+    private static class AsynchronousOperation implements Cancellable {
 
         private SimpleFuture<ModelNode> compensatingOperation = new SimpleFuture<ModelNode>();
         // GuardedBy compensatingOperation
         private boolean compensatingOpSet = false;
         private SimpleFuture<Integer> asynchronousId = new SimpleFuture<Integer>();
+        private final ManagementRequestConnectionStrategy connectionStrategy;
+
+        public AsynchronousOperation(final ManagementRequestConnectionStrategy connectionStrategy) {
+            this.connectionStrategy = connectionStrategy;
+        }
 
         @Override
         public boolean cancel() throws IOException {
@@ -345,7 +320,7 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
             try {
                 int i = asynchronousId.get().intValue();
                 if (i >= 0) {
-                    return new CancelAsynchronousOperationRequest(i).executeForResult(getConnectionStrategy());
+                    return new CancelAsynchronousOperationRequest(i).executeForResult(connectionStrategy);
                 }
                 else return false;
             } catch (IOException e) {
@@ -413,13 +388,13 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
         }
 
         @Override
-        public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        public V get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 
-            long deadline = unit.toMillis(timeout) + System.currentTimeMillis();
+            final long deadline = unit.toMillis(timeout) + System.currentTimeMillis();
             lock.lock();
             try {
                 while (!done) {
-                    long remaining = deadline - System.currentTimeMillis();
+                    final long remaining = deadline - System.currentTimeMillis();
                     if (remaining <= 0) {
                         throw new TimeoutException();
                     }
@@ -459,4 +434,12 @@ abstract class AbstractModelControllerClient implements ModelControllerClient {
             }
         }
     }
+
+    static ModelNode readNode(InputStream in) throws IOException {
+        final ModelNode node = new ModelNode();
+        node.readExternal(in);
+        return node;
+    }
+
+
 }

@@ -22,9 +22,14 @@
 
 package org.jboss.as.host.controller;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import org.jboss.as.process.ProcessControllerClient;
+import org.jboss.as.process.ProcessInfo;
+import org.jboss.as.process.ProcessMessageHandler;
 import org.jboss.as.server.services.net.NetworkInterfaceBinding;
 import org.jboss.logging.Logger;
 import org.jboss.msc.service.Service;
@@ -42,15 +47,18 @@ class ServerInventoryService implements Service<ServerInventory> {
 
     static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("host", "controller", "server-inventory");
 
+    private final String name;
     private final InjectedValue<NetworkInterfaceBinding> iFace = new InjectedValue<NetworkInterfaceBinding>();
     private final InjectedValue<ProcessControllerConnectionService> client = new InjectedValue<ProcessControllerConnectionService>();
+    private final InjectedValue<ExecutorService> executor = new InjectedValue<ExecutorService>();
     private final HostControllerEnvironment environment;
     private final int port;
 
     private ServerInventory serverInventory;
 
-    ServerInventoryService(final HostControllerEnvironment environment, final int port) {
+    ServerInventoryService(final HostControllerEnvironment environment, final String name, final int port) {
         this.environment = environment;
+        this.name = name;
         this.port = port;
     }
 
@@ -63,7 +71,8 @@ class ServerInventoryService implements Service<ServerInventory> {
             final NetworkInterfaceBinding interfaceBinding = iFace.getValue();
             final ProcessControllerClient client = this.client.getValue().getClient();
             final InetSocketAddress binding = new InetSocketAddress(interfaceBinding.getAddress(), port);
-            serverInventory = new ServerInventory(environment, binding, client);
+            final ExecutorService executor = this.executor.getValue();
+            serverInventory = new ServerInventory(environment, binding, client, executor);
         } catch (Exception e) {
             throw new StartException(e);
         }
@@ -95,4 +104,9 @@ class ServerInventoryService implements Service<ServerInventory> {
     InjectedValue<ProcessControllerConnectionService> getClient() {
         return client;
     }
+
+    InjectedValue<ExecutorService> getExecutor() {
+        return executor;
+    }
+
 }

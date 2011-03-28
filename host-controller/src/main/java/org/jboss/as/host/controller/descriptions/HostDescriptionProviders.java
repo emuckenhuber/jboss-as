@@ -71,12 +71,23 @@ public final class HostDescriptionProviders {
     };
 
     /**
-     * Provider for server=>*
+     * Provider for server-config=>*
      */
-    public static final DescriptionProvider SERVER_PROVIDER = new DescriptionProvider() {
+    public static final DescriptionProvider SERVER_CONFIG_PROVIDER = new DescriptionProvider() {
         @Override
         public ModelNode getModelDescription(final Locale locale) {
             return HostServerDescription.getDescription(locale);
         }
     };
+
+    /**
+     * Provider for server=>*
+     */
+    public static final DescriptionProvider SERVER_RUNTIME_PROVIDER = new DescriptionProvider() {
+        @Override
+        public ModelNode getModelDescription(Locale locale) {
+            return new ModelNode();
+        }
+    };
+
 }

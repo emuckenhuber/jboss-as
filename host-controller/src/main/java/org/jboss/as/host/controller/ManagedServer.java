@@ -30,14 +30,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jboss.as.controller.AbstractModelController;
+import org.jboss.as.controller.BasicOperationResult;
+import org.jboss.as.controller.Cancellable;
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.OperationResult;
+import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResultHandler;
 import org.jboss.as.controller.client.Operation;
+import org.jboss.as.controller.client.RemoteControllerCommunicationSupport;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.protocol.Connection;
+import org.jboss.as.protocol.mgmt.ManagementRequestConnectionStrategy;
 import org.jboss.as.server.ServerStartTask;
 import org.jboss.as.server.ServerState;
 import org.jboss.dmr.ModelNode;
@@ -50,6 +57,9 @@ import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.msc.service.ServiceActivator;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.*;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 
 /**
  * Represents a managed server.
@@ -91,13 +101,27 @@ class ManagedServer implements ModelController {
     private final ProcessControllerClient processControllerClient;
     private final AtomicInteger respawnCount = new AtomicInteger();
     private final InetSocketAddress managementSocket;
-    private final ManagedServerBootConfiguration bootConfiguration;
     private final byte[] authKey;
+    private final ExecutorService executorService;
+
+    private volatile ManagedServerBootConfiguration bootConfiguration;
     private volatile ServerState state;
     private volatile Connection serverManagementConnection;
 
+    static byte[] createAuthToken() {
+        final byte[] authKey = new byte[16];
+        // TODO: use a RNG with a secure seed
+        new Random().nextBytes(authKey);
+        return authKey;
+    }
+
     public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient,
-            final InetSocketAddress managementSocket, final ManagedServerBootConfiguration bootConfiguration) {
+        final InetSocketAddress managementSocket, final ExecutorService executorService) {
+        this(serverName, processControllerClient, managementSocket, executorService, createAuthToken());
+    }
+
+    public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient,
+            final InetSocketAddress managementSocket, final ExecutorService executorService, final byte[] authKey) {
         assert serverName  != null : "serverName is null";
         assert processControllerClient != null : "processControllerSlave is null";
         assert managementSocket != null : "managementSocket is null";
@@ -106,13 +130,8 @@ class ManagedServer implements ModelController {
         this.serverProcessName = getServerProcessName(serverName);
         this.processControllerClient = processControllerClient;
         this.managementSocket = managementSocket;
-        this.bootConfiguration = bootConfiguration;
-
-        final byte[] authKey = new byte[16];
-        // TODO: use a RNG with a secure seed
-        new Random().nextBytes(authKey);
+        this.executorService = executorService;
         this.authKey = authKey;
-
         this.state = ServerState.STOPPED;
     }
 
@@ -128,6 +147,10 @@ class ManagedServer implements ModelController {
         return serverManagementConnection;
     }
 
+    void setBootConfiguration(final ManagedServerBootConfiguration bootConfiguration) {
+        this.bootConfiguration = bootConfiguration;
+    }
+
     public ServerState getState() {
         return state;
     }
@@ -136,18 +159,121 @@ class ManagedServer implements ModelController {
         this.state = state;
     }
 
-    /** {@inheritDoc} */
     @Override
-    public OperationResult execute(Operation operation, ResultHandler handler) {
-        // TODO use serverManagementConnection to execute the operation
-        return null;
+    public ModelNode execute(Operation operation) throws CancellationException {
+                final AtomicInteger status = new AtomicInteger();
+        final ModelNode finalResult = new ModelNode();
+        // Make the "outcome" child come first
+        finalResult.get(OUTCOME);
+        // Ensure there is a "result" child even if we receive no fragments
+        finalResult.get(RESULT);
+        ResultHandler resultHandler = new ResultHandler() {
+            @Override
+            public void handleResultFragment(final String[] location, final ModelNode fragment) {
+                synchronized (finalResult) {
+                    if (status.get() == 0) {
+                        finalResult.get(RESULT).get(location).set(fragment);
+                    }
+                }
+            }
+
+            @Override
+            public void handleResultComplete() {
+                synchronized (finalResult) {
+                    status.compareAndSet(0, 1);
+                    finalResult.notify();
+                }
+            }
+
+            @Override
+            public void handleFailed(final ModelNode failureDescription) {
+                synchronized (finalResult) {
+                    if (status.compareAndSet(0, 3)) {
+                        if (failureDescription != null && failureDescription.isDefined()) {
+                            finalResult.get(FAILURE_DESCRIPTION).set(failureDescription);
+                        }
+                    }
+                    finalResult.notify();
+                }
+            }
+
+            @Override
+            public void handleCancellation() {
+                synchronized (finalResult) {
+                    if (status.compareAndSet(0, 2)) {
+                        finalResult.remove(RESULT);
+                    }
+                    finalResult.notify();
+                }
+            }
+        };
+        final OperationResult handlerResult = execute(operation, resultHandler);
+        boolean intr = false;
+        try {
+            synchronized (finalResult) {
+                for (;;) {
+                    try {
+                        final int s = status.get();
+                        switch (s) {
+                            case 1: finalResult.get(OUTCOME).set(SUCCESS);
+                                if(handlerResult.getCompensatingOperation() != null) {
+                                   finalResult.get(COMPENSATING_OPERATION).set(handlerResult.getCompensatingOperation());
+                                }
+                                return finalResult;
+                            case 2: finalResult.get(OUTCOME).set(CANCELLED);
+                                throw new CancellationException();
+                            case 3: finalResult.get(OUTCOME).set(FAILED);
+                                if (!finalResult.hasDefined(RESULT)) {
+                                    // Remove the undefined node
+                                    finalResult.remove(RESULT);
+                                }
+                                return finalResult;
+                        }
+                        finalResult.wait();
+                    } catch (final InterruptedException e) {
+                        intr = true;
+                        handlerResult.getCancellable().cancel();
+                    }
+                }
+            }
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     /** {@inheritDoc} */
     @Override
-    public ModelNode execute(Operation operation) throws CancellationException {
-        // TODO use serverManagementConnection to execute the operation
-        return null;
+    public OperationResult execute(final Operation operation, final ResultHandler handler) {
+        synchronized(lock) {
+            final Connection serverManagementConnection = this.serverManagementConnection;
+            if(serverManagementConnection == null) {
+                handler.handleFailed(new ModelNode().set(String.format("no management connection for server '%s' available.", serverName)));
+                return new BasicOperationResult();
+            }
+            final ManagementRequestConnectionStrategy connectionStrategy = createConnectionStrategy(serverManagementConnection);
+            final org.jboss.as.controller.client.OperationResult result = RemoteControllerCommunicationSupport.execute(operation, new ProxyController.ResultHandlerAdapter(handler), connectionStrategy, executorService);
+            return new OperationResult() {
+                @Override
+                public ModelNode getCompensatingOperation() {
+                    return result.getCompensatingOperation();
+                }
+                @Override
+                public Cancellable getCancellable() {
+                    return new Cancellable() {
+                        @Override
+                        public boolean cancel() {
+                            try {
+                                return result.getCancellable().cancel();
+                            } catch(IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    };
+                }
+            };
+        }
     }
 
     void setServerManagementConnection(Connection serverManagementConnection) {
@@ -164,6 +290,10 @@ class ManagedServer implements ModelController {
 
     void createServerProcess() throws IOException {
         synchronized(lock) {
+            final ManagedServerBootConfiguration bootConfiguration = this.bootConfiguration;
+            if(bootConfiguration == null) {
+                throw new IllegalStateException();
+            }
             final List<String> command = bootConfiguration.getServerLaunchCommand();
             final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
             final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
@@ -175,6 +305,10 @@ class ManagedServer implements ModelController {
 
     void startServerProcess() throws IOException {
         synchronized(lock) {
+            final ManagedServerBootConfiguration bootConfiguration = this.bootConfiguration;
+            if(bootConfiguration == null) {
+                throw new IllegalStateException();
+            }
             setState(ServerState.BOOTING);
 
             final List<ModelNode> bootUpdates = bootConfiguration.getBootUpdates();
@@ -210,6 +344,10 @@ class ManagedServer implements ModelController {
         synchronized(lock) {
             processControllerClient.removeProcess(serverProcessName);
         }
+    }
+
+    static ManagementRequestConnectionStrategy createConnectionStrategy(final Connection connection) {
+        return new ManagementRequestConnectionStrategy.ExistingConnectionStrategy(connection);
     }
 
     /**

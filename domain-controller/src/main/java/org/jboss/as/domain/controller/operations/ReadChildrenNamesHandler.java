@@ -25,12 +25,16 @@ package org.jboss.as.domain.controller.operations;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER;
+
+import java.util.Set;
 
 import org.jboss.as.controller.BasicOperationResult;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationResult;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ResultHandler;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
@@ -56,6 +60,19 @@ public class ReadChildrenNamesHandler extends GlobalOperationHandlers.ReadChildr
                 final ModelNode result = new ModelNode().setEmptyList();
                 for(final String hostName : domainModelImpl.getHostNames()) {
                     result.add(hostName);
+                }
+                resultHandler.handleResultFragment(Util.NO_LOCATION, result);
+                resultHandler.handleResultComplete();
+                return new BasicOperationResult();
+            }
+        }
+        if(address.size() == 1 && domainModelImpl.isMaster()) {
+            final String childName = operation.require(CHILD_TYPE).asString();
+            if(SERVER.equals(childName) && HOST.equals(address.getElement(0).getKey())) {
+                final Set<String> serverNames = context.getRegistry().getChildNames(address.append(PathElement.pathElement(SERVER)));
+                final ModelNode result = new ModelNode().setEmptyList();
+                for(final String name : serverNames) {
+                    result.add(name);
                 }
                 resultHandler.handleResultFragment(Util.NO_LOCATION, result);
                 resultHandler.handleResultComplete();

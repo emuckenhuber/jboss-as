@@ -40,12 +40,15 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationResult;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ResultHandler;
+import org.jboss.as.controller.RuntimeTask;
+import org.jboss.as.controller.RuntimeTaskContext;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.ModelTypeValidator;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.host.controller.HostController;
 import org.jboss.as.host.controller.descriptions.HostServerDescription;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -58,8 +61,9 @@ import org.jboss.dmr.ModelType;
 public class ServerAddHandler implements ModelAddOperationHandler, DescriptionProvider {
 
     public static final String OPERATION_NAME = ADD;
+    public static final ServerAddHandler INSTANCE = new ServerAddHandler();
 
-    public static ModelNode getAddServerOperation(ModelNode address, ModelNode existing) {
+    public static ModelNode getAddServerOperation(ModelNode address, String name, ModelNode group) {
         ModelNode op = Util.getEmptyOperation(ADD, address);
         op.get(GROUP).set(existing.get(GROUP));
         op.get(AUTO_START).set(existing.get(AUTO_START));

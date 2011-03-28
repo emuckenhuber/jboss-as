@@ -22,15 +22,39 @@
 
 package org.jboss.as.host.controller;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutorService;
 
+import org.jboss.as.controller.BasicModelController;
+import org.jboss.as.controller.BasicOperationResult;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationHandler;
+import org.jboss.as.controller.OperationResult;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ProxyController;
+import org.jboss.as.controller.ResultHandler;
+import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
+import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
+import org.jboss.as.controller.persistence.NullConfigurationPersister;
+import org.jboss.as.controller.registry.BasicNodeRegistration;
 import org.jboss.as.domain.controller.DomainController;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.process.ProcessInfo;
@@ -44,7 +68,7 @@ import org.jboss.logging.Logger;
  *
  * @author Emanuel Muckenhuber
  * @author Kabir Khan
-   */
+ */
 class ServerInventory implements ManagedServerLifecycleCallback {
 
     private static final Logger log = Logger.getLogger("org.jboss.as.host.controller");
@@ -53,18 +77,16 @@ class ServerInventory implements ManagedServerLifecycleCallback {
     private final HostControllerEnvironment environment;
     private final ProcessControllerClient processControllerClient;
     private final InetSocketAddress managementAddress;
-    private volatile HostControllerImpl hostController;
     private volatile CountDownLatch processInventoryLatch;
     private volatile Map<String, ProcessInfo> processInfos;
+    private final ExecutorService executorService;
 
-    ServerInventory(final HostControllerEnvironment environment, final InetSocketAddress managementAddress, final ProcessControllerClient processControllerClient) {
+    ServerInventory(final HostControllerEnvironment environment, final InetSocketAddress managementAddress,
+                    final ProcessControllerClient processControllerClient, ExecutorService executorService) {
         this.environment = environment;
         this.managementAddress = managementAddress;
         this.processControllerClient = processControllerClient;
-    }
-
-    void setHostController(HostControllerImpl hostController) {
-        this.hostController = hostController;
+        this.executorService = executorService;
     }
 
     synchronized Map<String, ProcessInfo> determineRunningProcesses(){
@@ -92,62 +114,99 @@ class ServerInventory implements ManagedServerLifecycleCallback {
         }
     }
 
+    /**
+     * Determine the status of a managed server.
+     *
+     * @param serverName the server name
+     * @return the state of the server. <code>ServerStatus.DOES_NOT_EXIST</code> if there is not such server registered
+     */
     ServerStatus determineServerStatus(final String serverName) {
-        ServerStatus status;
         final String processName = ManagedServer.getServerProcessName(serverName);
         final ManagedServer client = servers.get(processName);
         if (client == null) {
-            status = ServerStatus.STOPPED; // TODO move the configuration state outside
+            return ServerStatus.DOES_NOT_EXIST;
         } else {
-            switch (client.getState()) {
-                case AVAILABLE:
-                case BOOTING:
-                case STARTING:
-                    status = ServerStatus.STARTING;
-                    break;
-                case FAILED:
-                case MAX_FAILED:
-                    status = ServerStatus.FAILED;
-                    break;
-                case STARTED:
-                    status = ServerStatus.STARTED;
-                    break;
-                case STOPPING:
-                    status = ServerStatus.STOPPING;
-                    break;
-                case STOPPED:
-                    status = ServerStatus.STOPPED;
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected state " + client.getState());
-            }
+            return determineStatus(client.getState());
+        }
+    }
+
+    ServerStatus determineStatus(final ServerState state) {
+        ServerStatus status;
+        switch (state) {
+            case AVAILABLE:
+            case BOOTING:
+            case STARTING:
+                status = ServerStatus.STARTING;
+                break;
+            case FAILED:
+            case MAX_FAILED:
+                status = ServerStatus.FAILED;
+                break;
+            case STARTED:
+                status = ServerStatus.STARTED;
+                break;
+            case STOPPING:
+                status = ServerStatus.STOPPING;
+                break;
+            case STOPPED:
+                status = ServerStatus.STOPPED;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected state " + state);
         }
         return status;
     }
 
-    ServerStatus startServer(final String serverName, final ModelNode hostModel, final DomainController domainController) {
+    void addServer(final String serverName) {
+        addServer(serverName, ManagedServer.createAuthToken());
+    }
 
+    void addServer(final String serverName, byte[] authKey) {
         final String processName = ManagedServer.getServerProcessName(serverName);
-        final ManagedServer existing = servers.get(processName);
-        if(existing != null) { // FIXME
-            log.warnf("Existing server [%s] with state: %s", processName, existing.getState());
-            return determineServerStatus(serverName);
+        synchronized (servers) {
+            final ManagedServer existing = servers.get(processName);
+            if(existing != null) {
+                throw new IllegalStateException("duplicate server " + serverName);
+            }
+            final ManagedServer server = createManagedServer(serverName);
+            servers.put(processName, server);
         }
-        log.infof("Starting server %s", serverName);
-        final ManagedServer server = createManagedServer(serverName, hostModel, domainController);
-        servers.put(processName, server);
+    }
 
-        try {
-            server.createServerProcess();
-        } catch(IOException e) {
-            log.errorf(e, "Failed to create server process %s", serverName);
+    void removeServer(final String serverName) {
+        final String processName = ManagedServer.getServerProcessName(serverName);
+        synchronized (servers) {
+            final ManagedServer server = servers.remove(processName);
+            if(server == null) {
+                //
+            }
+            servers.remove(processName);
         }
-        try {
-            server.startServerProcess();
-        } catch(IOException e) {
-            log.errorf(e, "Failed to start server %s", serverName);
+    }
+
+    ServerStatus startServer(final String serverName, final ModelNode hostModel, final DomainController domainController) {
+        final String processName = ManagedServer.getServerProcessName(serverName);
+        synchronized (servers) {
+            final ManagedServer server = servers.get(processName);
+            if(server == null) { // FIXME
+                throw new IllegalStateException();
+            }
+            log.infof("Starting server %s", serverName);
+            final ManagedServer.ManagedServerBootConfiguration bootConfiguration = createBootConfiguration(serverName, hostModel, domainController);
+            server.setBootConfiguration(bootConfiguration);
+            try {
+                server.createServerProcess();
+            } catch(IOException e) {
+                log.errorf(e, "Failed to create server process %s", serverName);
+            }
+            try {
+                server.startServerProcess();
+            } catch(IOException e) {
+                log.errorf(e, "Failed to start server %s", serverName);
+            }
+            return determineStatus(server.getState());
         }
-        return determineServerStatus(serverName);
+
     }
 
     void reconnectServer(final String serverName, final ModelNode hostModel, final DomainController domainController, final boolean running){
@@ -158,9 +217,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
             log.warnf("existing server [%s] with state: %s", processName, existing.getState());
         }
         log.info("Reconnecting server " + serverName);
-        final ManagedServer server = createManagedServer(serverName, hostModel, domainController);
-        servers.put(processName, server);
-
+        final ManagedServer server = servers.get(processName);
         if (running){
             try {
                 server.reconnectServerProcess(environment.getHostControllerPort());
@@ -196,6 +253,8 @@ class ServerInventory implements ManagedServerLifecycleCallback {
                 else {
                     server.stopServerProcess();
                     server.removeServerProcess();
+                    servers.remove(processName);
+                    // hostController.unregisterRunningServer(serverName);
                 }
             }
         }
@@ -220,8 +279,10 @@ class ServerInventory implements ManagedServerLifecycleCallback {
                 checkState(server, ServerState.STARTING);
             }
             server.setState(ServerState.STARTED);
-            hostController.registerRunningServer(server.getServerName(), server.getServerConnection());
             server.resetRespawnCount();
+
+            //This should really be in serverStarted() along with an unregisterCall in serverStopped()
+            // hostController.registerRunningServer(server.getServerName(), server.getServerConnection());
         } catch (final Exception e) {
             log.errorf(e, "Could not start server %s", serverName);
         }
@@ -247,7 +308,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
             log.errorf("No server called %s exists for stop", serverName);
             return;
         }
-        hostController.unregisterRunningServer(server.getServerName());
+        // hostController.unregisterRunningServer(server.getServerName());
         if (server.getState() != ServerState.STOPPING){
             //The server crashed, try to restart it
             // TODO: throttle policy
@@ -272,13 +333,36 @@ class ServerInventory implements ManagedServerLifecycleCallback {
         }
     }
 
-    private ManagedServer createManagedServer(final String serverName, final ModelNode hostModel, final DomainController domainController) {
-        final ModelCombiner combiner = new ModelCombiner(serverName, hostModel, domainController, environment);
-        return new ManagedServer(serverName, processControllerClient, managementAddress, combiner);
+    private ManagedServer createManagedServer(final String serverName) {
+        return new ManagedServer(serverName, processControllerClient, managementAddress, executorService);
+    }
+
+    protected ManagedServer.ManagedServerBootConfiguration createBootConfiguration(final String name, final ModelNode hostModel, final DomainController domainController) {
+        return new ModelCombiner(name, hostModel, domainController, environment);
     }
 
     HostControllerEnvironment getEnvironment(){
         return environment;
+    }
+
+    protected ManagedServer getServer(final String processName) {
+        synchronized (servers) {
+            final ManagedServer server = servers.get(processName);
+            if(server == null) {
+                throw new IllegalStateException(String.format("Server not configured: %s", processName));
+            }
+            return server;
+        }
+    }
+
+    protected Set<String> getChildNames() {
+        final Set<String> names = new HashSet<String>();
+        synchronized(servers) {
+            for(final ManagedServer server : servers.values()) {
+                names.add(server.getServerName());
+            }
+        }
+        return names;
     }
 
 }

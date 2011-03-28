@@ -25,6 +25,10 @@ package org.jboss.as.host.controller;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.AccessController;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
@@ -78,7 +82,8 @@ class ProcessControllerConnectionService implements Service<ProcessControllerCon
             configuration.setReadExecutor(Executors.newCachedThreadPool());
             configuration.setServerAddress(new InetSocketAddress(environment.getProcessControllerAddress(), environment.getProcessControllerPort().intValue()));
 
-            final ThreadFactory threadFactory = new JBossThreadFactory(new ThreadGroup("ProcessControllerConnection-threads"), Boolean.FALSE, null, "%G - %t", null, null, AccessController.getContext());
+            final ThreadGroup group = new ThreadGroup("ProcessControllerConnection-threads");
+            final ThreadFactory threadFactory = new JBossThreadFactory(group, Boolean.FALSE, null, "%G - %t", null, null, AccessController.getContext());
             configuration.setThreadFactory(threadFactory);
             configuration.setSocketFactory(SocketFactory.getDefault());
             client = ProcessControllerClient.connect(configuration, authCode, new ProcessMessageHandler() {
