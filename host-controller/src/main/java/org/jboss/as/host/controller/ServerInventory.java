@@ -29,10 +29,13 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -365,4 +368,9 @@ class ServerInventory implements ManagedServerLifecycleCallback {
         return names;
     }
 
+    List<ManagedServer> getManagedServers(){
+        synchronized (servers) {
+            return new ArrayList<ManagedServer>(servers.values());
+        }
+    }
 }

@@ -15,6 +15,7 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
 import org.jboss.as.controller.registry.BasicNodeRegistration;
+import org.jboss.as.server.ServerState;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 
@@ -101,23 +102,25 @@ class ServerNodeRegistration extends BasicNodeRegistration {
                 }
             });
         } else {
-            final Collection<ManagedServer> servers = null;
+            final Collection<ManagedServer> servers = inventory.getManagedServers();
             for(final ManagedServer server : servers) {
-                final PathAddress address = hostAddr.append(PathElement.pathElement(SERVER, server.getServerName()));
-                controllers.add(new ProxyController() {
-                    @Override
-                    public ModelNode execute(Operation operation) throws CancellationException {
-                        return server.execute(operation);
-                    }
-                    @Override
-                    public OperationResult execute(Operation operation, ResultHandler handler) {
-                        return server.execute(operation, handler);
-                    }
-                    @Override
-                    public PathAddress getProxyNodeAddress() {
-                        return address;
-                    }
-                });
+                if (server.getState() == ServerState.STARTED) {
+                    final PathAddress address = hostAddr.append(PathElement.pathElement(SERVER, server.getServerName()));
+                    controllers.add(new ProxyController() {
+                        @Override
+                        public ModelNode execute(Operation operation) throws CancellationException {
+                            return server.execute(operation);
+                        }
+                        @Override
+                        public OperationResult execute(Operation operation, ResultHandler handler) {
+                            return server.execute(operation, handler);
+                        }
+                        @Override
+                        public PathAddress getProxyNodeAddress() {
+                            return address;
+                        }
+                    });
+                }
             }
         }
     }
