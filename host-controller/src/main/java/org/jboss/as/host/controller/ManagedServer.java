@@ -42,6 +42,8 @@ import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResultHandler;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.RemoteControllerCommunicationSupport;
+import org.jboss.as.controller.client.helpers.domain.ServerStatus;
+import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.protocol.Connection;
 import org.jboss.as.protocol.mgmt.ManagementRequestConnectionStrategy;
@@ -249,7 +251,11 @@ class ManagedServer implements ModelController {
         synchronized(lock) {
             final Connection serverManagementConnection = this.serverManagementConnection;
             if(serverManagementConnection == null) {
-                handler.handleFailed(new ModelNode().set(String.format("no management connection for server '%s' available.", serverName)));
+                final ModelNode result = new ModelNode();
+                result.get("description").set(String.format("no management connection for server '%s' available.", serverName));
+                result.get("status").set(determineStatus(state).toString());
+                handler.handleResultFragment(Util.NO_LOCATION, result);
+                handler.handleResultComplete();
                 return new BasicOperationResult();
             }
             final ManagementRequestConnectionStrategy connectionStrategy = createConnectionStrategy(serverManagementConnection);
@@ -348,6 +354,33 @@ class ManagedServer implements ModelController {
 
     static ManagementRequestConnectionStrategy createConnectionStrategy(final Connection connection) {
         return new ManagementRequestConnectionStrategy.ExistingConnectionStrategy(connection);
+    }
+
+    static ServerStatus determineStatus(final ServerState state) {
+        ServerStatus status;
+        switch (state) {
+            case AVAILABLE:
+            case BOOTING:
+            case STARTING:
+                status = ServerStatus.STARTING;
+                break;
+            case FAILED:
+            case MAX_FAILED:
+                status = ServerStatus.FAILED;
+                break;
+            case STARTED:
+                status = ServerStatus.STARTED;
+                break;
+            case STOPPING:
+                status = ServerStatus.STOPPING;
+                break;
+            case STOPPED:
+                status = ServerStatus.STOPPED;
+                break;
+            default:
+                throw new IllegalStateException("Unexpected state " + state);
+        }
+        return status;
     }
 
     /**

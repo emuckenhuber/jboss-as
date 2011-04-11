@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.security.AccessController;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -44,6 +45,7 @@ import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.protocol.mgmt.ManagementRequest;
 import org.jboss.as.protocol.mgmt.ManagementRequestConnectionStrategy;
 import org.jboss.dmr.ModelNode;
+import org.jboss.threads.JBossThreadFactory;
 
 /**
  * Abstract superclass for {@link ModelControllerClient} implementations.
@@ -51,7 +53,7 @@ import org.jboss.dmr.ModelNode;
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
 abstract class AbstractModelControllerClient implements ModelControllerClient {
-    final ThreadFactory threadFactory = Executors.defaultThreadFactory();
+    final ThreadFactory threadFactory = new JBossThreadFactory(new ThreadGroup("ModelControllerClient-thread"), Boolean.FALSE, Thread.NORM_PRIORITY, "%G - %t", null, null, AccessController.getContext());
     final ExecutorService executorService = Executors.newCachedThreadPool(threadFactory);
 
     public AbstractModelControllerClient() {
