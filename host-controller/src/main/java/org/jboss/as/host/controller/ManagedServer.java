@@ -40,6 +40,7 @@ import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.OperationResult;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ResultHandler;
+import org.jboss.as.controller.SynchronousOperationSupport;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.RemoteControllerCommunicationSupport;
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
@@ -71,7 +72,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RES
  * @author Brian Stansberry
  * @author Emanuel Muckenhuber
  */
-class ManagedServer implements ModelController {
+class ManagedServer implements ModelController, SynchronousOperationSupport.AsynchronousOperationController<Void> {
 
     private static final MarshallerFactory MARSHALLER_FACTORY;
     private static final MarshallingConfiguration CONFIG;
@@ -163,86 +164,12 @@ class ManagedServer implements ModelController {
 
     @Override
     public ModelNode execute(Operation operation) throws CancellationException {
-                final AtomicInteger status = new AtomicInteger();
-        final ModelNode finalResult = new ModelNode();
-        // Make the "outcome" child come first
-        finalResult.get(OUTCOME);
-        // Ensure there is a "result" child even if we receive no fragments
-        finalResult.get(RESULT);
-        ResultHandler resultHandler = new ResultHandler() {
-            @Override
-            public void handleResultFragment(final String[] location, final ModelNode fragment) {
-                synchronized (finalResult) {
-                    if (status.get() == 0) {
-                        finalResult.get(RESULT).get(location).set(fragment);
-                    }
-                }
-            }
+        return SynchronousOperationSupport.execute(operation, null, this);
+    }
 
-            @Override
-            public void handleResultComplete() {
-                synchronized (finalResult) {
-                    status.compareAndSet(0, 1);
-                    finalResult.notify();
-                }
-            }
-
-            @Override
-            public void handleFailed(final ModelNode failureDescription) {
-                synchronized (finalResult) {
-                    if (status.compareAndSet(0, 3)) {
-                        if (failureDescription != null && failureDescription.isDefined()) {
-                            finalResult.get(FAILURE_DESCRIPTION).set(failureDescription);
-                        }
-                    }
-                    finalResult.notify();
-                }
-            }
-
-            @Override
-            public void handleCancellation() {
-                synchronized (finalResult) {
-                    if (status.compareAndSet(0, 2)) {
-                        finalResult.remove(RESULT);
-                    }
-                    finalResult.notify();
-                }
-            }
-        };
-        final OperationResult handlerResult = execute(operation, resultHandler);
-        boolean intr = false;
-        try {
-            synchronized (finalResult) {
-                for (;;) {
-                    try {
-                        final int s = status.get();
-                        switch (s) {
-                            case 1: finalResult.get(OUTCOME).set(SUCCESS);
-                                if(handlerResult.getCompensatingOperation() != null) {
-                                   finalResult.get(COMPENSATING_OPERATION).set(handlerResult.getCompensatingOperation());
-                                }
-                                return finalResult;
-                            case 2: finalResult.get(OUTCOME).set(CANCELLED);
-                                throw new CancellationException();
-                            case 3: finalResult.get(OUTCOME).set(FAILED);
-                                if (!finalResult.hasDefined(RESULT)) {
-                                    // Remove the undefined node
-                                    finalResult.remove(RESULT);
-                                }
-                                return finalResult;
-                        }
-                        finalResult.wait();
-                    } catch (final InterruptedException e) {
-                        intr = true;
-                        handlerResult.getCancellable().cancel();
-                    }
-                }
-            }
-        } finally {
-            if (intr) {
-                Thread.currentThread().interrupt();
-            }
-        }
+    @Override
+    public OperationResult execute(Operation operation, ResultHandler resultHandler, Void handback) {
+        return execute(operation, resultHandler);
     }
 
     /** {@inheritDoc} */
