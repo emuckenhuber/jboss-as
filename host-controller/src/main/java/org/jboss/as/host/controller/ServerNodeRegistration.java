@@ -175,21 +175,25 @@ class ServerNodeRegistration extends BasicNodeRegistration {
 
             final ModelNode operationNode = operation.getOperation();
             final PathAddress address = PathAddress.pathAddress(operationNode.require(OP_ADDR));
-            if(address.size() == 0) {
+            final int addressSize = address.size();
+            if(addressSize == 0) {
                 throw new IllegalStateException();
-            }
-            String operationName = operationNode.get(OP).asString();
-            final OperationHandler localHandler = getOperationHandler(PathAddress.EMPTY_ADDRESS, operationName);
-            if(localHandler != null) {
-                final OperationContext context = getOperationContext(new ModelNode(), localHandler, operation, getModelProvider());
-                try {
-                    return localHandler.execute(context, operationNode, handler);
-                } catch(OperationFailedException e) {
-                    log.debugf(e, "operation (%s) failed - address: (%s)", operation.getOperation().get(OP), operation.getOperation().get(OP_ADDR));
-                    handler.handleFailed(e.getFailureDescription());
-                    return new BasicOperationResult();
+            } else if (addressSize == 1) {
+                // Operations targeting the server element directly
+                String operationName = operationNode.get(OP).asString();
+                final OperationHandler localHandler = getOperationHandler(PathAddress.EMPTY_ADDRESS, operationName);
+                if(localHandler != null) {
+                    final OperationContext context = getOperationContext(new ModelNode(), localHandler, operation, getModelProvider());
+                    try {
+                        return localHandler.execute(context, operationNode, handler);
+                    } catch(OperationFailedException e) {
+                        log.debugf(e, "operation (%s) failed - address: (%s)", operation.getOperation().get(OP), operation.getOperation().get(OP_ADDR));
+                        handler.handleFailed(e.getFailureDescription());
+                        return new BasicOperationResult();
+                    }
                 }
             }
+
             // In case there is no local handler run it on the actual server
             final PathElement path = address.getElement(0);
             ManagedServer managedServer = getServer(ManagedServer.getServerProcessName(path.getValue()));
@@ -202,6 +206,16 @@ class ServerNodeRegistration extends BasicNodeRegistration {
             return managedServer.execute(operation.clone(newOperation), handler);
         }
 
+    }
+
+    static final class AggregatingReadOpNamesHandler implements OperationHandler {
+        @Override
+        public OperationResult execute(OperationContext context, ModelNode operation, ResultHandler resultHandler) throws OperationFailedException {
+
+
+
+            return null;
+        }
     }
 
 }
