@@ -63,7 +63,7 @@ public class ServerAddHandler implements ModelAddOperationHandler, DescriptionPr
     public static final String OPERATION_NAME = ADD;
     public static final ServerAddHandler INSTANCE = new ServerAddHandler();
 
-    public static ModelNode getAddServerOperation(ModelNode address, String name, ModelNode group) {
+    public static ModelNode getAddServerOperation(ModelNode address, ModelNode existing) {
         ModelNode op = Util.getEmptyOperation(ADD, address);
         op.get(GROUP).set(existing.get(GROUP));
         op.get(AUTO_START).set(existing.get(AUTO_START));
@@ -76,8 +76,6 @@ public class ServerAddHandler implements ModelAddOperationHandler, DescriptionPr
 
         return op;
     }
-
-    public static final ServerAddHandler INSTANCE = new ServerAddHandler();
 
     private final ParametersValidator validator = new ParametersValidator();
 
