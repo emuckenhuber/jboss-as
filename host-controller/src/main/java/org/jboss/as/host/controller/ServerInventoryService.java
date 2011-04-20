@@ -27,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import org.jboss.as.host.controller.mgmt.ManagementCommunicationService;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.process.ProcessInfo;
 import org.jboss.as.process.ProcessMessageHandler;
@@ -47,19 +48,15 @@ class ServerInventoryService implements Service<ServerInventory> {
 
     static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("host", "controller", "server-inventory");
 
-    private final String name;
-    private final InjectedValue<NetworkInterfaceBinding> iFace = new InjectedValue<NetworkInterfaceBinding>();
     private final InjectedValue<ProcessControllerConnectionService> client = new InjectedValue<ProcessControllerConnectionService>();
     private final InjectedValue<ExecutorService> executor = new InjectedValue<ExecutorService>();
+    private final InjectedValue<ManagementCommunicationService> commService = new InjectedValue<ManagementCommunicationService>();
     private final HostControllerEnvironment environment;
-    private final int port;
 
     private ServerInventory serverInventory;
 
-    ServerInventoryService(final HostControllerEnvironment environment, final String name, final int port) {
+    ServerInventoryService(final HostControllerEnvironment environment) {
         this.environment = environment;
-        this.name = name;
-        this.port = port;
     }
 
     /** {@inheritDoc} */
@@ -68,9 +65,8 @@ class ServerInventoryService implements Service<ServerInventory> {
         log.debug("Starting Host Controller Server Inventory");
         final ServerInventory serverInventory;
         try {
-            final NetworkInterfaceBinding interfaceBinding = iFace.getValue();
             final ProcessControllerClient client = this.client.getValue().getClient();
-            final InetSocketAddress binding = new InetSocketAddress(interfaceBinding.getAddress(), port);
+            final InetSocketAddress binding = this.commService.getValue().getBoundAddress();
             final ExecutorService executor = this.executor.getValue();
             serverInventory = new ServerInventory(environment, binding, client, executor);
         } catch (Exception e) {
@@ -97,8 +93,8 @@ class ServerInventoryService implements Service<ServerInventory> {
         return serverInventory;
     }
 
-    InjectedValue<NetworkInterfaceBinding> getInterface() {
-        return iFace;
+    InjectedValue<ManagementCommunicationService> getCommService() {
+        return commService;
     }
 
     InjectedValue<ProcessControllerConnectionService> getClient() {

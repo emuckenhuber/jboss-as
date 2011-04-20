@@ -31,6 +31,7 @@ import java.util.concurrent.ThreadFactory;
 
 import javax.net.ServerSocketFactory;
 
+import org.jboss.as.process.Protocol;
 import org.jboss.as.protocol.Connection;
 import org.jboss.as.protocol.ConnectionHandler;
 import org.jboss.as.protocol.MessageHandler;
@@ -154,6 +155,14 @@ public class ManagementCommunicationService implements Service<ManagementCommuni
         if (!handlers.remove(handler.getIdentifier(), handler)) {
             // TODO: Handle
         }
+    }
+
+    public InetSocketAddress getBoundAddress() {
+        final ProtocolServer server = this.server;
+        if(server == null) {
+            throw new IllegalStateException();
+        }
+        return server.getBoundAddress();
     }
 
     @Override

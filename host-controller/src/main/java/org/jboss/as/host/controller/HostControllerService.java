@@ -26,6 +26,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
@@ -57,9 +58,8 @@ public class HostControllerService implements Service<LocalHostModel> {
 
     private LocalHostModel proxyController;
 
-    HostControllerService(final String name, final ModelNode hostModel,
-            final ExtensibleConfigurationPersister configPersister, final ModelNodeRegistration registry) {
-        this.name = name;
+    HostControllerService(final ModelNode hostModel, final ExtensibleConfigurationPersister configPersister, final ModelNodeRegistration registry) {
+        this.name = hostModel.get(ModelDescriptionConstants.NAME).asString();
         this.hostModel = hostModel;
         this.configPersister = configPersister;
         this.registry = registry;
@@ -69,7 +69,6 @@ public class HostControllerService implements Service<LocalHostModel> {
     @Override
     public synchronized void start(StartContext context) throws StartException {
         final ServerInventory serverInventory = this.serverInventory.getValue();
-
 
         final HostControllerImpl controller = new HostControllerImpl(name, configPersister, registry, serverInventory);
         controller.registerInternalOperations();

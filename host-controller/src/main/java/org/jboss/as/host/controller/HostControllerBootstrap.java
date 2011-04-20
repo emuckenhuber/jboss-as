@@ -142,6 +142,7 @@ public class HostControllerBootstrap {
         };
 
         for (final ModelNode operation : operations) {
+            System.out.println(operation);
             count.incrementAndGet();
             operation.get(OPERATION_HEADERS, ROLLBACK_ON_RUNTIME_FAILURE).set(false);
             domainModel.execute(OperationBuilder.Factory.create(operation).build(), resultHandler);
@@ -150,21 +151,16 @@ public class HostControllerBootstrap {
             // some action?
         }
 
-        final String hostName = domainModel.getLocalHostName();
         final ModelNode hostModelNode = domainModel.getHostModel();
 
-        final String mgmtNetwork = hostModelNode.get(MANAGEMENT_INTERFACES, NATIVE_INTERFACE, INTERFACE).asString();
-        final int mgmtPort = hostModelNode.get(MANAGEMENT_INTERFACES, NATIVE_INTERFACE, PORT).asInt();
-
-        final String name = hostModelNode.get(NAME).asString();
-        final ServerInventoryService inventory = new ServerInventoryService(environment, name, mgmtPort);
+        final ServerInventoryService inventory = new ServerInventoryService(environment);
         serviceTarget.addService(ServerInventoryService.SERVICE_NAME, inventory)
+            .addDependency(ManagementCommunicationService.SERVICE_NAME, ManagementCommunicationService.class, inventory.getCommService())
             .addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, inventory.getClient())
             .addDependency(SERVICE_NAME_BASE.append("executor"), ExecutorService.class, inventory.getExecutor())
-            .addDependency(NetworkInterfaceService.JBOSS_NETWORK_INTERFACE.append(mgmtNetwork), NetworkInterfaceBinding.class, inventory.getInterface())
             .install();
 
-        final HostControllerService hc = new HostControllerService(name, hostModelNode, configurationPersister, hostRegistry);
+        final HostControllerService hc = new HostControllerService(hostModelNode, configurationPersister, hostRegistry);
         serviceTarget.addService(HostController.SERVICE_NAME, hc)
                 .addDependency(ServerInventoryService.SERVICE_NAME, ServerInventory.class, hc.getServerInventory())
                 .addDependency(ServerToHostOperationHandler.SERVICE_NAME) // make sure servers can register

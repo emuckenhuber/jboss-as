@@ -112,6 +112,9 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
                                                     final OperationHandler operationHandler, final Operation operation) {
             final ModelNode subModel = getOperationSubModel(modelSource, operationHandler, address);
             if (provideRuntimeContext(operation.getOperation()) == true) {
+
+                System.out.println("aflsdjflkasfkljaljdf" + operation.getOperation());
+
                 return new RuntimeOperationContextImpl(DomainModelImpl.this, getRegistry(), subModel, modelSource, operation);
             } else {
                 return DomainModelImpl.this.getOperationContext(subModel, operationHandler, operation, modelSource);

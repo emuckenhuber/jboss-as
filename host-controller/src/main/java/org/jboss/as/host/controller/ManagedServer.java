@@ -103,7 +103,6 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
     private final Object lock = new Object();
     private final ProcessControllerClient processControllerClient;
     private final AtomicInteger respawnCount = new AtomicInteger();
-    private final InetSocketAddress managementSocket;
     private final byte[] authKey;
     private final ExecutorService executorService;
 
@@ -118,21 +117,17 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
         return authKey;
     }
 
-    public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient,
-        final InetSocketAddress managementSocket, final ExecutorService executorService) {
-        this(serverName, processControllerClient, managementSocket, executorService, createAuthToken());
+    public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient, final ExecutorService executorService) {
+        this(serverName, processControllerClient, executorService, createAuthToken());
     }
 
-    public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient,
-            final InetSocketAddress managementSocket, final ExecutorService executorService, final byte[] authKey) {
+    public ManagedServer(final String serverName, final ProcessControllerClient processControllerClient, final ExecutorService executorService, final byte[] authKey) {
         assert serverName  != null : "serverName is null";
         assert processControllerClient != null : "processControllerSlave is null";
-        assert managementSocket != null : "managementSocket is null";
 
         this.serverName = serverName;
         this.serverProcessName = getServerProcessName(serverName);
         this.processControllerClient = processControllerClient;
-        this.managementSocket = managementSocket;
         this.executorService = executorService;
         this.authKey = authKey;
         this.state = ServerState.STOPPED;
@@ -236,7 +231,7 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
         }
     }
 
-    void startServerProcess() throws IOException {
+    void startServerProcess(final InetSocketAddress managementSocket) throws IOException {
         synchronized(lock) {
             final ManagedServerBootConfiguration bootConfiguration = this.bootConfiguration;
             if(bootConfiguration == null) {
@@ -261,7 +256,7 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
         }
     }
 
-    void reconnectServerProcess(int port) throws IOException {
+    void reconnectServerProcess(final InetSocketAddress managementSocket) throws IOException {
         synchronized (lock){
             processControllerClient.reconnectProcess(serverProcessName, managementSocket.getAddress().getHostName(), managementSocket.getPort());
         }

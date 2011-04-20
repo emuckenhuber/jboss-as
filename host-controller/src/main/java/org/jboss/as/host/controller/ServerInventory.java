@@ -173,7 +173,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
                 log.errorf(e, "Failed to create server process %s", serverName);
             }
             try {
-                server.startServerProcess();
+                server.startServerProcess(managementAddress);
             } catch(IOException e) {
                 log.errorf(e, "Failed to start server %s", serverName);
             }
@@ -189,7 +189,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
         final ManagedServer server = getServer(processName);
         if (running){
             try {
-                server.reconnectServerProcess(environment.getHostControllerPort());
+                server.reconnectServerProcess(managementAddress);
             } catch (IOException e) {
                 log.errorf(e, "Failed to send reconnect message to server %s", serverName);
             }
@@ -263,7 +263,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
             try {
                 //TODO make configurable
                 if (server.incrementAndGetRespawnCount() < 10 ){
-                    server.startServerProcess();
+                    server.startServerProcess(managementAddress);
                     return;
                 }
                 server.setState(ServerState.MAX_FAILED);
@@ -282,7 +282,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
     }
 
     private ManagedServer createManagedServer(final String serverName) {
-        return new ManagedServer(serverName, processControllerClient, managementAddress, executorService);
+        return new ManagedServer(serverName, processControllerClient, executorService);
     }
 
     protected ManagedServer.ManagedServerBootConfiguration createBootConfiguration(final String name, final ModelNode hostModel, final DomainController domainController) {
