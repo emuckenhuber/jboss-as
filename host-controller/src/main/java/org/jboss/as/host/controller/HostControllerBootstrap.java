@@ -155,7 +155,6 @@ public class HostControllerBootstrap {
 
         final ServerInventoryService inventory = new ServerInventoryService(environment);
         serviceTarget.addService(ServerInventoryService.SERVICE_NAME, inventory)
-            .addDependency(ManagementCommunicationService.SERVICE_NAME, ManagementCommunicationService.class, inventory.getCommService())
             .addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, inventory.getClient())
             .addDependency(SERVICE_NAME_BASE.append("executor"), ExecutorService.class, inventory.getExecutor())
             .install();

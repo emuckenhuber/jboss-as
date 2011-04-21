@@ -79,17 +79,19 @@ class ServerInventory implements ManagedServerLifecycleCallback {
 
     private final HostControllerEnvironment environment;
     private final ProcessControllerClient processControllerClient;
-    private final InetSocketAddress managementAddress;
+    private volatile InetSocketAddress managementAddress;
     private volatile CountDownLatch processInventoryLatch;
     private volatile Map<String, ProcessInfo> processInfos;
     private final ExecutorService executorService;
 
-    ServerInventory(final HostControllerEnvironment environment, final InetSocketAddress managementAddress,
-                    final ProcessControllerClient processControllerClient, ExecutorService executorService) {
+    ServerInventory(final HostControllerEnvironment environment, final ProcessControllerClient processControllerClient, ExecutorService executorService) {
         this.environment = environment;
-        this.managementAddress = managementAddress;
         this.processControllerClient = processControllerClient;
         this.executorService = executorService;
+    }
+
+    protected void initializeMgmtConnection(final InetSocketAddress address) {
+        this.managementAddress = address;
     }
 
     synchronized Map<String, ProcessInfo> determineRunningProcesses(){
@@ -100,7 +102,7 @@ class ServerInventory implements ManagedServerLifecycleCallback {
             throw new RuntimeException(e);
         }
         try {
-            if (!processInventoryLatch.await(30, TimeUnit.SECONDS)){
+            if (! processInventoryLatch.await(30, TimeUnit.SECONDS)){
                 throw new RuntimeException("Could not get the server inventory in 30 seconds");
             }
         } catch (InterruptedException e) {

@@ -85,7 +85,6 @@ import org.jboss.as.controller.persistence.ConfigurationPersister;
 import org.jboss.as.controller.persistence.ConfigurationPersisterProvider;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
-import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.server.deployment.api.DeploymentRepository;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
@@ -112,9 +111,6 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
                                                     final OperationHandler operationHandler, final Operation operation) {
             final ModelNode subModel = getOperationSubModel(modelSource, operationHandler, address);
             if (provideRuntimeContext(operation.getOperation()) == true) {
-
-                System.out.println("aflsdjflkasfkljaljdf" + operation.getOperation());
-
                 return new RuntimeOperationContextImpl(DomainModelImpl.this, getRegistry(), subModel, modelSource, operation);
             } else {
                 return DomainModelImpl.this.getOperationContext(subModel, operationHandler, operation, modelSource);
@@ -191,6 +187,8 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
         }
     };
 
+
+    private Object hostController;
 
     /*
      * The private constructor here allows us to both create and retain a reference to the DelegatingConfigurationPersister.
@@ -317,6 +315,15 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
         Map<String, DomainControllerSlaveClient> hosts = new HashMap<String, DomainControllerSlaveClient>(this.hosts);
         hosts.remove(localHostName);
         return hosts;
+    }
+
+
+    public Object getHostController() {
+        return this.hostController;
+    }
+
+    public void setHostController(final Object hc) {
+        this.hostController = hc;
     }
 
     @Override

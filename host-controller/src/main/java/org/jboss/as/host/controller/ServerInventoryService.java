@@ -50,7 +50,6 @@ class ServerInventoryService implements Service<ServerInventory> {
 
     private final InjectedValue<ProcessControllerConnectionService> client = new InjectedValue<ProcessControllerConnectionService>();
     private final InjectedValue<ExecutorService> executor = new InjectedValue<ExecutorService>();
-    private final InjectedValue<ManagementCommunicationService> commService = new InjectedValue<ManagementCommunicationService>();
     private final HostControllerEnvironment environment;
 
     private ServerInventory serverInventory;
@@ -66,9 +65,8 @@ class ServerInventoryService implements Service<ServerInventory> {
         final ServerInventory serverInventory;
         try {
             final ProcessControllerClient client = this.client.getValue().getClient();
-            final InetSocketAddress binding = this.commService.getValue().getBoundAddress();
             final ExecutorService executor = this.executor.getValue();
-            serverInventory = new ServerInventory(environment, binding, client, executor);
+            serverInventory = new ServerInventory(environment, client, executor);
         } catch (Exception e) {
             throw new StartException(e);
         }
@@ -91,10 +89,6 @@ class ServerInventoryService implements Service<ServerInventory> {
             throw new IllegalStateException();
         }
         return serverInventory;
-    }
-
-    InjectedValue<ManagementCommunicationService> getCommService() {
-        return commService;
     }
 
     InjectedValue<ProcessControllerConnectionService> getClient() {
