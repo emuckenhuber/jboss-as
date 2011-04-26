@@ -216,7 +216,7 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
         respawnCount.set(0);
     }
 
-    void createServerProcess() throws IOException {
+    void createServerProcess(final ProcessControllerClient client, final ExecutorService executorService) throws IOException {
         synchronized(lock) {
             final ManagedServerBootConfiguration bootConfiguration = this.bootConfiguration;
             if(bootConfiguration == null) {
@@ -226,7 +226,7 @@ class ManagedServer implements ModelController, SynchronousOperationSupport.Asyn
             final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
             final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
             // Add the process to the process controller
-            processControllerClient.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
+            client.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
             this.state = ServerState.BOOTING;
         }
     }

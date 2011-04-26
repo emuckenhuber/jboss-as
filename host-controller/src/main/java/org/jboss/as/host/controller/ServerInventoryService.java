@@ -50,27 +50,25 @@ class ServerInventoryService implements Service<ServerInventory> {
 
     private final InjectedValue<ProcessControllerConnectionService> client = new InjectedValue<ProcessControllerConnectionService>();
     private final InjectedValue<ExecutorService> executor = new InjectedValue<ExecutorService>();
-    private final HostControllerEnvironment environment;
 
     private ServerInventory serverInventory;
 
-    ServerInventoryService(final HostControllerEnvironment environment) {
-        this.environment = environment;
+    ServerInventoryService(final ServerInventory serverInventory) {
+        this.serverInventory = serverInventory;
     }
 
     /** {@inheritDoc} */
     @Override
     public synchronized void start(StartContext context) throws StartException {
         log.debug("Starting Host Controller Server Inventory");
-        final ServerInventory serverInventory;
+        final ServerInventory serverInventory = this.serverInventory;
         try {
             final ProcessControllerClient client = this.client.getValue().getClient();
             final ExecutorService executor = this.executor.getValue();
-            serverInventory = new ServerInventory(environment, client, executor);
+            serverInventory.initializePart1(client, executor);
         } catch (Exception e) {
             throw new StartException(e);
         }
-        this.serverInventory = serverInventory;
         client.getValue().setServerInventory(serverInventory);
     }
 

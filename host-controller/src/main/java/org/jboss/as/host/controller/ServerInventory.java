@@ -59,6 +59,7 @@ import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
 import org.jboss.as.controller.registry.BasicNodeRegistration;
 import org.jboss.as.domain.controller.DomainController;
+import org.jboss.as.domain.controller.LocalServerInventory;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.process.ProcessInfo;
 import org.jboss.as.protocol.Connection;
@@ -72,26 +73,30 @@ import org.jboss.logging.Logger;
  * @author Emanuel Muckenhuber
  * @author Kabir Khan
  */
-class ServerInventory implements ManagedServerLifecycleCallback {
+class ServerInventory implements ManagedServerLifecycleCallback, LocalServerInventory {
 
     private static final Logger log = Logger.getLogger("org.jboss.as.host.controller");
     private final Map<String, ManagedServer> servers = Collections.synchronizedMap(new HashMap<String, ManagedServer>());
 
     private final HostControllerEnvironment environment;
-    private final ProcessControllerClient processControllerClient;
+    private volatile ProcessControllerClient processControllerClient;
     private volatile InetSocketAddress managementAddress;
     private volatile CountDownLatch processInventoryLatch;
     private volatile Map<String, ProcessInfo> processInfos;
-    private final ExecutorService executorService;
+    private volatile ExecutorService executorService;
 
-    ServerInventory(final HostControllerEnvironment environment, final ProcessControllerClient processControllerClient, ExecutorService executorService) {
+    ServerInventory(final HostControllerEnvironment environment) {
         this.environment = environment;
+    }
+
+    protected void initializePart1(final ProcessControllerClient processControllerClient, final ExecutorService executor) {
         this.processControllerClient = processControllerClient;
-        this.executorService = executorService;
+        this.executorService = executor;
     }
 
     protected void initializeMgmtConnection(final InetSocketAddress address) {
         this.managementAddress = address;
+
     }
 
     synchronized Map<String, ProcessInfo> determineRunningProcesses(){
@@ -133,6 +138,16 @@ class ServerInventory implements ManagedServerLifecycleCallback {
         } else {
             return ManagedServer.determineStatus(client.getState());
         }
+    }
+
+    @Override
+    public void registerServer(String name) {
+        addServer(name);
+    }
+
+    @Override
+    public void unregisterServer(String name) {
+        removeServer(name);
     }
 
     void addServer(final String serverName) {

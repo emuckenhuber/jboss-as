@@ -40,6 +40,7 @@ import org.jboss.as.controller.persistence.ConfigurationFile;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
 import org.jboss.as.domain.controller.DomainModelImpl;
+import org.jboss.as.domain.controller.LocalServerInventory;
 import org.jboss.as.host.controller.mgmt.ManagementCommunicationService;
 import org.jboss.as.host.controller.mgmt.ManagementCommunicationServiceInjector;
 import org.jboss.as.host.controller.mgmt.ServerToHostOperationHandler;
@@ -107,7 +108,8 @@ public class HostControllerBootstrap {
 
         // The Bootstrap domain model is initialised ready for the operations to bootstrap the remainder of the
         // host controller.
-        DomainModelProxyImpl domainModelProxy = new DomainModelProxyImpl();
+        final ServerInventory serverInventory = new ServerInventory(environment);
+        DomainModelProxyImpl domainModelProxy = new DomainModelProxyImpl(serverInventory);
         final ModelNodeRegistration hostRegistry = HostModelUtil.createHostRegistry(configurationPersister, environment, domainModelProxy);
         final ModelNodeRegistration rootRegistration = HostModelUtil.createBootstrapHostRegistry(hostRegistry, domainModelProxy);
         DomainModelImpl domainModel = new DomainModelImpl(rootRegistration, serviceContainer, configurationPersister);
@@ -153,7 +155,7 @@ public class HostControllerBootstrap {
 
         final ModelNode hostModelNode = domainModel.getHostModel();
 
-        final ServerInventoryService inventory = new ServerInventoryService(environment);
+        final ServerInventoryService inventory = new ServerInventoryService(serverInventory);
         serviceTarget.addService(ServerInventoryService.SERVICE_NAME, inventory)
             .addDependency(ProcessControllerConnectionService.SERVICE_NAME, ProcessControllerConnectionService.class, inventory.getClient())
             .addDependency(SERVICE_NAME_BASE.append("executor"), ExecutorService.class, inventory.getExecutor())
@@ -230,9 +232,15 @@ public class HostControllerBootstrap {
     static final class DomainModelProxyImpl implements DomainModelProxy {
 
         private DomainModelImpl domainModel;
+        private final LocalServerInventory serverInventory;
+
+        DomainModelProxyImpl(final LocalServerInventory serverInventory) {
+            this.serverInventory = serverInventory;
+        }
 
         public void setDomainModel(final DomainModelImpl domainModel) {
             this.domainModel = domainModel;
+
         }
 
         @Override
@@ -243,6 +251,12 @@ public class HostControllerBootstrap {
 
             return domainModel;
         }
+
+        @Override
+        public LocalServerInventory getLocalServerInventory() {
+            return serverInventory;
+        }
     }
+
 
 }

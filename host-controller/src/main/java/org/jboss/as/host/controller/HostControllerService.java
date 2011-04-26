@@ -77,12 +77,6 @@ public class HostControllerService implements Service<LocalHostModel> {
         ServerInventoryUtils.registerServerOperations(nodeRegistration, controller);
         registry.registerSubModel(PathElement.pathElement(SERVER), nodeRegistration);
 
-        // FIXME move to ServerAddHandler runtimeContext
-        final Set<String> serverNames = hostModel.get(SERVER_CONFIG).keys();
-        for(final String serverName : serverNames) {
-            serverInventory.addServer(serverName);
-        }
-
         this.proxyController = new LocalHostModel() {
 
             @Override

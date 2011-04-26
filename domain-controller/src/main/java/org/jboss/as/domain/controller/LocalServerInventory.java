@@ -20,28 +20,17 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.host.controller;
-
-import org.jboss.as.domain.controller.DomainModelImpl;
-import org.jboss.as.domain.controller.LocalServerInventory;
+package org.jboss.as.domain.controller;
 
 /**
- * On bootstrapping the host controller process some operations require access to the DomainModel, however the
- * DomainModel is created after the registrations have taken place, the implementation of this interface will
- * bridge that gap.
+ * Local inventory of registered servers.
  *
- * @author <a href="mailto:darran.lofthouse@jboss.com">Darran Lofthouse</a>
+ * @author Emanuel Muckenhuber
  */
-public interface DomainModelProxy {
+public interface LocalServerInventory {
 
-    /**
-     * @return The central DomainModel for this HostController.
-     */
-    DomainModelImpl getDomainModel();
+    void registerServer(final String name);
 
-    /**
-     * @return
-     */
-    LocalServerInventory getLocalServerInventory();
+    void unregisterServer(final String name);
 
 }

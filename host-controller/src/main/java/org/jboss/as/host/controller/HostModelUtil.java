@@ -206,8 +206,8 @@ public class HostModelUtil {
 
         //server
         ModelNodeRegistration servers = root.registerSubModel(PathElement.pathElement(SERVER_CONFIG), HostDescriptionProviders.SERVER_CONFIG_PROVIDER);
-        servers.registerOperationHandler(ServerAddHandler.OPERATION_NAME, ServerAddHandler.INSTANCE, ServerAddHandler.INSTANCE, false);
-        servers.registerOperationHandler(ServerRemoveHandler.OPERATION_NAME, ServerRemoveHandler.INSTANCE, ServerRemoveHandler.INSTANCE, false);
+        servers.registerOperationHandler(ServerAddHandler.OPERATION_NAME, new ServerAddHandler(domainModelProxy.getLocalServerInventory()), new ServerAddHandler(domainModelProxy.getLocalServerInventory()), false);
+        servers.registerOperationHandler(ServerRemoveHandler.OPERATION_NAME, new ServerRemoveHandler(domainModelProxy.getLocalServerInventory()), new ServerRemoveHandler(domainModelProxy.getLocalServerInventory()), false);
         servers.registerOperationHandler(SystemPropertyAddHandler.OPERATION_NAME, SystemPropertyAddHandler.INSTANCE, SystemPropertyAddHandler.INSTANCE, false);
         servers.registerOperationHandler(SystemPropertyRemoveHandler.OPERATION_NAME, SystemPropertyRemoveHandler.INSTANCE, SystemPropertyRemoveHandler.INSTANCE, false);
         servers.registerReadWriteAttribute(AUTO_START, null, new WriteAttributeHandlers.ModelTypeValidatingHandler(ModelType.BOOLEAN), Storage.CONFIGURATION);

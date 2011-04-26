@@ -48,6 +48,8 @@ import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.ModelTypeValidator;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.domain.controller.DomainModelImpl;
+import org.jboss.as.domain.controller.LocalServerInventory;
 import org.jboss.as.host.controller.HostController;
 import org.jboss.as.host.controller.descriptions.HostServerDescription;
 import org.jboss.dmr.ModelNode;
@@ -61,7 +63,7 @@ import org.jboss.dmr.ModelType;
 public class ServerAddHandler implements ModelAddOperationHandler, DescriptionProvider {
 
     public static final String OPERATION_NAME = ADD;
-    public static final ServerAddHandler INSTANCE = new ServerAddHandler();
+    // public static final ServerAddHandler INSTANCE = new ServerAddHandler();
 
     public static ModelNode getAddServerOperation(ModelNode address, ModelNode existing) {
         ModelNode op = Util.getEmptyOperation(ADD, address);
@@ -78,11 +80,13 @@ public class ServerAddHandler implements ModelAddOperationHandler, DescriptionPr
     }
 
     private final ParametersValidator validator = new ParametersValidator();
+    private final LocalServerInventory inventory;
 
     /**
      * Create the ServerAddHandler
      */
-    private ServerAddHandler() {
+    public ServerAddHandler(final LocalServerInventory inventory) {
+        this.inventory = inventory;
         validator.registerValidator(GROUP, new StringLengthValidator(1, Integer.MAX_VALUE, false, true));
         validator.registerValidator(SOCKET_BINDING_GROUP, new StringLengthValidator(1, Integer.MAX_VALUE, true, true));
         validator.registerValidator(SOCKET_BINDING_PORT_OFFSET, new IntRangeValidator(0, 65535, true, true));
@@ -113,6 +117,8 @@ public class ServerAddHandler implements ModelAddOperationHandler, DescriptionPr
         model.get(AUTO_START).set(autoStart);
 
         final ModelNode compensating = Util.getResourceRemoveOperation(operation.get(OP_ADDR));
+        // Register the server
+        this.inventory.registerServer(name);
         resultHandler.handleResultComplete();
         return new BasicOperationResult(compensating);
     }

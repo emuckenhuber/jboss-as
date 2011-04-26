@@ -85,6 +85,7 @@ import org.jboss.as.controller.persistence.ConfigurationPersister;
 import org.jboss.as.controller.persistence.ConfigurationPersisterProvider;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.registry.ModelNodeRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.server.deployment.api.DeploymentRepository;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
@@ -187,8 +188,7 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
         }
     };
 
-
-    private Object hostController;
+    private LocalServerInventory serverRegistry;
 
     /*
      * The private constructor here allows us to both create and retain a reference to the DelegatingConfigurationPersister.
@@ -317,13 +317,12 @@ public class DomainModelImpl extends BasicModelController implements DomainModel
         return hosts;
     }
 
-
-    public Object getHostController() {
-        return this.hostController;
+    public LocalServerInventory getServerInventory() {
+        return this.serverRegistry;
     }
 
-    public void setHostController(final Object hc) {
-        this.hostController = hc;
+    public void setServerInventory(LocalServerInventory serverInventory) {
+        this.serverRegistry = serverInventory;
     }
 
     @Override

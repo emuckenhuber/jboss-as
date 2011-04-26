@@ -38,6 +38,8 @@ import org.jboss.as.controller.RuntimeTask;
 import org.jboss.as.controller.RuntimeTaskContext;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.common.InterfaceDescription;
+import org.jboss.as.domain.controller.DomainModelImpl;
+import org.jboss.as.domain.controller.LocalServerInventory;
 import org.jboss.as.host.controller.descriptions.HostServerDescription;
 import org.jboss.dmr.ModelNode;
 
@@ -50,10 +52,12 @@ import org.jboss.dmr.ModelNode;
 public class ServerRemoveHandler implements ModelRemoveOperationHandler, DescriptionProvider {
 
     public static final String OPERATION_NAME = REMOVE;
-    public static final ServerRemoveHandler INSTANCE = new ServerRemoveHandler();
+    // public static final ServerRemoveHandler INSTANCE = new ServerRemoveHandler();
 
-    private ServerRemoveHandler() {
-        //
+    private final LocalServerInventory inventory;
+
+    public ServerRemoveHandler(final LocalServerInventory inventory) {
+        this.inventory = inventory;
     }
 
     /**
@@ -62,7 +66,12 @@ public class ServerRemoveHandler implements ModelRemoveOperationHandler, Descrip
     @Override
     public OperationResult execute(final OperationContext context, final ModelNode operation, final ResultHandler resultHandler) throws OperationFailedException {
         try {
+            final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
+            final String name = address.getLastElement().getValue();
+
             ModelNode compensating = ServerAddHandler.getAddServerOperation(operation.get(OP_ADDR), context.getSubModel());
+            // Unregister the server
+            this.inventory.unregisterServer(name);
             resultHandler.handleResultComplete();
             return new BasicOperationResult(compensating);
         }
