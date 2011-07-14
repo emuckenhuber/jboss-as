@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ JBoss, Home of Professional Open Source.
+  ~ Copyright 2011, Red Hat, Inc., and individual contributors
+  ~ as indicated by the @author tags. See the copyright.txt file in the
+  ~ distribution for a full listing of individual contributors.
+  ~
+  ~ This is free software; you can redistribute it and/or modify it
+  ~ under the terms of the GNU Lesser General Public License as
+  ~ published by the Free Software Foundation; either version 2.1 of
+  ~ the License, or (at your option) any later version.
+  ~
+  ~ This software is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  ~ Lesser General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Lesser General Public
+  ~ License along with this software; if not, write to the Free
+  ~ Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+  ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+  -->
+
+<patch>
+
+    <!--
+        *unique* id, which can be used for rollback
+
+        group by organization to allow ISVs to create/distribute their own patches?
+    -->
+    <id organization="Red Hat, Inc." id="1234" />
+
+    <display-name>Display name for this patch.</display-name>
+    <description>Update A and B, Secure some config and introduce Feature X</description>
+    <url>http://updates.redhat.com/ReleaseInfo1234</url>
+
+    <!--
+        type influences the way the repo is patched
+
+        release = replaces the full repository with the content in the patch (no diff)
+        CP* = update existing repository based on the repo diff, also updates the repo name (version)
+        one-off = update module-repo overlay directory only
+
+
+        [*] CP == ? we need to figure out term for this concept
+    -->
+    <type>[release|CP|one-off]</type>
+
+    <!--
+        Basically a hash to check the zipped content.
+
+        additional content verification? Or a way to enforce verification?
+
+        Maybe some additional information where to get that content from?
+        URL? what about credentials?
+
+    -->
+    <content hash="d046498bf51d016c76912a533640cfb90abe1b49f1f6a0cdb6cdcec9254a0fbc" />
+
+    <check-pre-conditions>
+        <!--
+        // execute some arbitrary operations?
+        -->
+    </check-pre-conditions>
+
+    <!--
+        multiple repositories?
+
+        - e.g. layered products
+
+          - AS/
+          - EPP
+          - SOAP
+          - WFK
+
+          would result in a jboss-modules root
+
+          AS;AS-patching;EPP;EPP-patching;SOAP;SOAP-patching;WFK;WFK-patching
+
+          - should not have any conflicts if layered products use a proper module slot to isolate
+          their own different versions!
+    -->
+    <repository>
+
+        <!--
+          basically check the target repo name (if the patch is created for this repo)
+          and replace name/version with the one of the content.
+        -->
+        <target name="7.1.0.CR1">
+            <content entry="7.1.0.Final" />
+        </target>
+
+        <module name="org.jboss.as.server" slot="main" type="MODIFY" />
+        <module name="org.jboss.new.feature" type="ADD" />
+
+    </repository>
+
+
+    <!--
+        Configuration updates need to be handled by the patch client tool vs. the patch API (modifying the bits)
+
+        - has to survive restarts - would need to keep the changes at least until this operation is marked
+          as complete? or we keep it for the whole release/CP cycle?
+
+        - maybe save the .jars only with their hash names, add an additional byte for the type + size (like .git/objects) ?
+
+        - For standalone we need to check if we can reliably restart the process (script vs. services vs. exit code, etc)
+           otherwise patching does not make any sense.
+
+        - Domain ??
+
+           - default-plan == modify bits only, ignore configuration
+
+           - The plan has to build by the client tool (console, whatever) - to determine whether operations should
+             be executed or not
+
+           - obviously patch MDC first, restart it and then?
+
+             -> create isolated domain model version for this patch, which can be retrieved by hosts
+                when starting and is valid until either everything is done, or rollback?
+
+
+
+    -->
+    <configuration>
+
+        <!--
+            -) per subsystem section // keep separate so that those operations can be resolved against all
+               profiles in the domain
+        -->
+
+        <subsystems>
+            <subsystem name="security">
+                <operation name="write-attribute" severity="CRITICAL">
+                    <!--
+                        secure all connectors
+
+                         -) Does not need to be a wildcard op, the patch-tool could understand wildcards?
+
+                            - it would need to resolve if the operation applies
+                            - for domain plan the patch-tool has to provide an interactive plan builder anyway
+
+                            <if-exists /> ??
+                            <for />
+
+                            additional pre-condition operation?
+                            additional <validation /> operation ?
+
+                    -->
+                    <address key="connector" value="*" />
+                    <parameter name="name" value="secured" />
+                    <parameter name="value" value="true" />
+                </operation>
+            </subsystem>
+            <subsystem name="featureX">
+                <operation name="add" severity="NEW">
+                    <address />
+                    <headers>
+                        <header />
+                    </headers>
+                    <!--
+                        -) don't include new features! ?
+                        -) who would be responsible of creating the new socket binding?
+                        -) do we need a way to model dependencies?
+                    -->
+                    <parameter name="socket-binding" value="featureX-binding" />
+                </operation>
+            </subsystem>
+        </subsystems>
+
+        <!--
+           -) standalone,domain,host specific operations - most likely all above applies here as well
+        -->
+        <standalaone />
+        <domain />
+        <host />
+
+    </configuration>
+
+    <validation>
+        <!--
+        // hmmm?
+        // How does that work for optional subsystems, services etc.?
+        // Maybe validation of single operations should be part of the description above?
+        // Executed where? on the server/host/domain?
+        -->
+    </validation>
+
+</patch>
+
