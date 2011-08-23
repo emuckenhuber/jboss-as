@@ -22,12 +22,45 @@
 
 package org.jboss.as.patching.plan;
 
+import org.jboss.dmr.ModelNode;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
 /**
+ * The detyped patching plan.
+ *
  * @author Emanuel Muckenhuber
  */
 public interface StandalonePatchingPlan {
 
+    /**
+     * Get the operations.
+     *
+     * @return the operations
+     */
+    List<ModelNode> getOperations();
 
+    /**
+     * Get the resources.
+     *
+     * @return the resources
+     */
+    List<ModelNode> getResources();
 
+    /**
+     * Get the modules.
+     *
+     * @return the modules
+     */
+    List<ModelNode> getModules();
+
+    /**
+     * Get the patch content.
+     *
+     * @return the patch content.
+     */
+    InputStream getPatchContent() throws IOException;
 
 }

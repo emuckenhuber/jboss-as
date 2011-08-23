@@ -37,7 +37,15 @@ import java.util.zip.ZipFile;
 public interface PatchContentLoader extends Closeable {
 
     /**
-     * Get a module resource.
+     * Get the content for a resource.
+     *
+     * @param resourceName the relative name of the resource
+     * @return the resource input stream
+     */
+    InputStream getResource(final String resourceName) throws IOException;
+
+    /**
+     * Get the content for a module resource.
      *
      * @param identifier the referenced module
      * @param resourceName the resource
@@ -63,10 +71,16 @@ public interface PatchContentLoader extends Closeable {
         }
 
         @Override
+        public InputStream getResource(String resourceName) throws IOException {
+            final File modules = new File(root, PatchLayout.RESOURCES);
+            final File resource = new File(modules,  resourceName);
+            return new FileInputStream(resource);
+        }
+
+        @Override
         public void close() throws IOException {
             //
         }
-
         static String toPathString(final ModuleIdentifier moduleIdentifier) {
             final StringBuilder builder = new StringBuilder();
             builder.append(moduleIdentifier.getName().replace('.', File.separatorChar));

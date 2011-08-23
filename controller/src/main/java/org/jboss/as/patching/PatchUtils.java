@@ -38,7 +38,7 @@ class PatchUtils {
      *
      * @param closeable
      */
-    public static void safeClose(final Closeable closeable) {
+    static void safeClose(final Closeable closeable) {
         if(closeable != null) {
             try {
                 closeable.close();

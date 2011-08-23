@@ -27,6 +27,7 @@ package org.jboss.as.patching;
  */
 public final class PatchLayout {
 
+    public static final String RESOURCES = "resources";
     public static final String MODULES = "modules";
 
 }

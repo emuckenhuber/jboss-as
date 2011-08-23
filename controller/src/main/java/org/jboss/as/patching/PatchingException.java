@@ -27,4 +27,18 @@ package org.jboss.as.patching;
  */
 public class PatchingException extends Exception {
 
+    public PatchingException() {
+    }
+
+    public PatchingException(String message) {
+        super(message);
+    }
+
+    public PatchingException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public PatchingException(Throwable cause) {
+        super(cause);
+    }
 }

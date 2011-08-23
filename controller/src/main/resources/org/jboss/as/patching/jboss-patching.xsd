@@ -30,7 +30,7 @@
     <xs:element name="patch">
         <xs:annotation>
             <xs:documentation>
-                Path description
+                Patch description
             </xs:documentation>
         </xs:annotation>
         <xs:complexType>
@@ -92,13 +92,6 @@
         </xs:annotation>
         <xs:simpleType>
             <xs:restriction base="xs:string">
-                <xs:enumeration value="NEW">
-                    <xs:annotation>
-                        <xs:documentation>
-                            'NEW' represents a management operation which would enable a new/optional feature.
-                        </xs:documentation>
-                    </xs:annotation>
-                </xs:enumeration>
                 <xs:enumeration value="LOW">
                     <xs:annotation>
                         <xs:documentation>

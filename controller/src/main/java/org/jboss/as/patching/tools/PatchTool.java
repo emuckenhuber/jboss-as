@@ -36,8 +36,6 @@ import java.net.URI;
  */
 public final class PatchTool {
 
-
-
     // prepare local patch
     // -- unpack etc.
     // check preconditions (CP1)
