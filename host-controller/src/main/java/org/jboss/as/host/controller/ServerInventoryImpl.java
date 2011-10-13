@@ -56,6 +56,7 @@ import org.jboss.as.controller.ProxyOperationAddressTranslator;
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
 import org.jboss.as.controller.remote.RemoteProxyController;
 import org.jboss.as.domain.controller.DomainController;
+import org.jboss.as.patching.service.PatchInfo;
 import org.jboss.as.process.AsyncProcessControllerClient;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.process.ProcessInfo;
@@ -85,12 +86,18 @@ class ServerInventoryImpl implements ServerInventory {
     private final AsyncProcessControllerClient processControllerClient;
     private final InetSocketAddress managementAddress;
     private final DomainController domainController;
+    private final PatchInfo patchInfo;
 
-    ServerInventoryImpl(final DomainController domainController, final HostControllerEnvironment environment, final InetSocketAddress managementAddress, final AsyncProcessControllerClient processControllerClient) {
+    private volatile boolean stopping = false;
+
+
+    ServerInventoryImpl(final DomainController domainController, final HostControllerEnvironment environment, final InetSocketAddress managementAddress,
+                        final AsyncProcessControllerClient processControllerClient, final PatchInfo patchInfo) {
         this.domainController = domainController;
         this.environment = environment;
         this.managementAddress = managementAddress;
         this.processControllerClient = processControllerClient;
+        this.patchInfo = patchInfo;
     }
 
     public String getServerProcessName(String serverName) {
@@ -198,7 +205,9 @@ class ServerInventoryImpl implements ServerInventory {
         try {
             final ManagedServer server = servers.get(processName);
             if (server != null) {
-                server.setState(ServerState.STOPPING);
+                if(! server.compareAndSetState(ServerState.STARTED, ServerState.STOPPED)) {
+                    return determineServerStatus(serverName);
+                }
                 if (gracefulTimeout > -1) {
                     // FIXME implement gracefulShutdown
                     //server.gracefulShutdown(gracefulTimeout);
@@ -218,7 +227,7 @@ class ServerInventoryImpl implements ServerInventory {
                 }
                 else {
                     // TODO we might need to call a mgmt operation instead of stopping the process directly
-                    server.stopServerProcess().get();
+                    server.stopServerProcess().get(20, TimeUnit.SECONDS);
                     server.removeServerProcess();
                 }
             }
@@ -282,13 +291,14 @@ class ServerInventoryImpl implements ServerInventory {
     /** {@inheritDoc} */
     @Override
     public void serverStopped(String serverProcessName) {
+
         final ManagedServer server = servers.get(serverProcessName);
         if (server == null) {
             log.errorf("No server called %s exists for stop", serverProcessName);
             return;
         }
         domainController.unregisterRunningServer(server.getServerName());
-        if (server.getState() != ServerState.STOPPING){
+        if (! stopping && server.getState() != ServerState.STOPPING){
             //The server crashed, try to restart it
             // TODO: throttle policy
             try {
@@ -306,11 +316,15 @@ class ServerInventoryImpl implements ServerInventory {
     }
 
     public void stopServers(int gracefulTimeout) {
+        stopping = true;
         final Map<String, ProcessInfo> processInfoMap = determineRunningProcesses();
-        final Set<String> serverNames = new LinkedHashSet<String>(servers.keySet());
-        for(final String serverName : serverNames) {
-            stopServer(serverName, gracefulTimeout);
-            processInfoMap.remove(ManagedServer.getServerProcessName(serverName));
+        final Set<ManagedServer> servers = new LinkedHashSet<ManagedServer>(this.servers.values());
+        for(final ManagedServer server : servers) {
+            if(server.getState() == ServerState.STARTED) {
+                final String serverName = server.getServerName();
+                stopServer(serverName, gracefulTimeout);
+                processInfoMap.remove(ManagedServer.getServerProcessName(serverName));
+            }
         }
         //
         for (String serverProcessName : processInfoMap.keySet()) {
@@ -331,7 +345,7 @@ class ServerInventoryImpl implements ServerInventory {
 
     private ManagedServer createManagedServer(final String serverName, final ModelNode domainModel) {
         final ModelNode hostModel = domainModel.require(HOST).require(domainController.getLocalHostInfo().getLocalHostName());
-        final ModelCombiner combiner = new ModelCombiner(serverName, domainModel, hostModel, domainController, environment);
+        final ModelCombiner combiner = new ModelCombiner(serverName, domainModel, hostModel, domainController, environment, patchInfo);
         return new ManagedServer(serverName, processControllerClient, managementAddress, combiner);
     }
 

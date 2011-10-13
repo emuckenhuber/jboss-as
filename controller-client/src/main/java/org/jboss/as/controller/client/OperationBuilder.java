@@ -78,4 +78,25 @@ public class OperationBuilder {
     public Operation build() {
         return new OperationImpl(operation, inputStreams);
     }
+
+    /**
+     * Build the operation directly without any input streams.
+     *
+     * @param operation the operation
+     * @return the operation
+     */
+    public static Operation build(final ModelNode operation) {
+        return new OperationImpl(operation, null);
+    }
+
+    /**
+     * Create a new operation builder.
+     *
+     * @param operation the operation
+     * @return the operation builder
+     */
+    public static OperationBuilder create(final ModelNode operation) {
+        return new OperationBuilder(operation);
+    }
+
 }

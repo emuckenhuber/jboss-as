@@ -138,13 +138,16 @@ public class HostControllerEnvironment {
     private final PrintStream stderr;
 
 
+    private final RawCommandLineArgs rawCommandLineArgs;
+
     public HostControllerEnvironment(Map<String, String> hostSystemProperties, boolean isRestart, InputStream stdin, PrintStream stdout, PrintStream stderr,
-                                     InetAddress processControllerAddress, Integer processControllerPort, InetAddress hostControllerAddress,
-                                     Integer hostControllerPort, String defaultJVM, String domainConfig, String hostConfig, boolean backupDomainFiles, boolean useCachedDc) {
+                                     InetAddress processControllerAddress, InetAddress hostControllerAddress, RawCommandLineArgs args) {
+
         if (hostSystemProperties == null) {
             throw new IllegalArgumentException("hostSystemProperties is null");
         }
         this.hostSystemProperties = Collections.unmodifiableMap(hostSystemProperties);
+        this.rawCommandLineArgs = args;
 
         if (stdin == null) {
              throw new IllegalArgumentException("stdin is null");
@@ -164,19 +167,16 @@ public class HostControllerEnvironment {
         if (processControllerAddress == null) {
             throw new IllegalArgumentException("processControllerAddress is null");
         }
-        if (processControllerPort == null) {
+        if (rawCommandLineArgs.getProcessControllerPort() == null) {
             throw new IllegalArgumentException("processControllerPort is null");
         }
         if (hostControllerAddress == null) {
             throw new IllegalArgumentException("hostControllerAddress is null");
         }
-        if (hostControllerPort == null) {
-            throw new IllegalArgumentException("hostControllerPort is null");
-        }
-        this.processControllerPort = processControllerPort;
+        this.processControllerPort = rawCommandLineArgs.getProcessControllerPort();
         this.processControllerAddress = processControllerAddress;
         this.hostControllerAddress = hostControllerAddress;
-        this.hostControllerPort = hostControllerPort;
+        this.hostControllerPort = rawCommandLineArgs.getHostControllerPort() != null ? rawCommandLineArgs.getHostControllerPort() : 0;
         this.isRestart = isRestart;
 
         File home = getFileFromProperty(HOME_DIR);
@@ -207,8 +207,8 @@ public class HostControllerEnvironment {
         this.domainConfigurationDir = tmp;
         System.setProperty(DOMAIN_CONFIG_DIR, this.domainConfigurationDir.getAbsolutePath());
 
-        hostConfigurationFile = new ConfigurationFile(domainConfigurationDir, "host.xml", hostConfig);
-        domainConfigurationFile = new ConfigurationFile(domainConfigurationDir, "domain.xml", domainConfig);
+        hostConfigurationFile = new ConfigurationFile(domainConfigurationDir, "host.xml", rawCommandLineArgs.getHostConfig());
+        domainConfigurationFile = new ConfigurationFile(domainConfigurationDir, "domain.xml", rawCommandLineArgs.getDomainConfig());
 
         tmp = getFileFromProperty(DOMAIN_DEPLOYMENT_DIR);
         if (tmp == null) {
@@ -245,6 +245,7 @@ public class HostControllerEnvironment {
         this.domainTempDir = tmp;
         System.setProperty(DOMAIN_TEMP_DIR, this.domainTempDir.getAbsolutePath());
 
+        String defaultJVM = rawCommandLineArgs.getDefaultJVM();
         if(defaultJVM != null) {
             if (defaultJVM.equals("java")) {
                 defaultJVM = DefaultJvmUtils.findJavaExecutable(DefaultJvmUtils.getCurrentJvmHome());
@@ -254,8 +255,8 @@ public class HostControllerEnvironment {
             this.defaultJVM = null;
         }
 
-        this.backupDomainFiles = backupDomainFiles;
-        this.useCachedDc = useCachedDc;
+        this.backupDomainFiles = rawCommandLineArgs.isBackupDC();
+        this.useCachedDc = rawCommandLineArgs.isCachedDC();
     }
 
     /**
@@ -407,6 +408,9 @@ public class HostControllerEnvironment {
         return hostSystemProperties;
     }
 
+    public RawCommandLineArgs getRawCommandLineArgs() {
+        return rawCommandLineArgs;
+    }
 
     /**
      * Get a File from configuration.

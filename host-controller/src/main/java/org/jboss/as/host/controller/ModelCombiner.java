@@ -71,6 +71,7 @@ import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.domain.controller.DomainController;
 import org.jboss.as.domain.controller.FileRepository;
 import org.jboss.as.host.controller.ManagedServer.ManagedServerBootConfiguration;
+import org.jboss.as.patching.service.PatchInfo;
 import org.jboss.as.process.DefaultJvmUtils;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.services.net.BindingGroupAddHandler;
@@ -102,15 +103,17 @@ class ModelCombiner implements ManagedServerBootConfiguration {
     private final HostControllerEnvironment environment;
     private final DomainController domainController;
     private final boolean managementSubsystemEndpoint;
+    private final PatchInfo patchInfo;
 
     ModelCombiner(final String serverName, final ModelNode domainModel, final ModelNode hostModel, final DomainController domainController,
-                  final HostControllerEnvironment environment) {
+                  final HostControllerEnvironment environment, final PatchInfo patchInfo) {
         this.serverName = serverName;
         this.domainModel = domainModel;
         this.hostModel = hostModel;
         this.serverModel = hostModel.require(SERVER_CONFIG).require(serverName);
         this.domainController = domainController;
         this.environment = environment;
+        this.patchInfo = patchInfo;
 
         final String serverGroupName = serverModel.require(GROUP).asString();
         this.serverGroup = domainModel.require(SERVER_GROUP).require(serverGroupName);
@@ -220,7 +223,7 @@ class ModelCombiner implements ManagedServerBootConfiguration {
         command.add("-jar");
         command.add("jboss-modules.jar");
         command.add("-mp");
-        command.add("modules");
+        command.add(patchInfo.getModulePath());
         command.add("-logmodule");
         command.add("org.jboss.logmanager");
         command.add("-jaxpmodule");

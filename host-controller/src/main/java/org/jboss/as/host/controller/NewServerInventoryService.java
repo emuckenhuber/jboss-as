@@ -22,6 +22,8 @@
 
 package org.jboss.as.host.controller;
 
+import org.jboss.as.patching.service.PatchInfo;
+import org.jboss.as.patching.service.PatchInfoService;
 import org.jboss.as.process.AsyncProcessControllerClient;
 import static org.jboss.msc.service.ServiceController.Mode.ON_DEMAND;
 
@@ -50,6 +52,7 @@ class NewServerInventoryService implements Service<ServerInventory> {
     static final ServiceName SERVICE_NAME = ServiceName.JBOSS.append("host", "controller", "server-inventory");
 
     private final InjectedValue<AsyncProcessControllerClient> client = new InjectedValue<AsyncProcessControllerClient>();
+    private final InjectedValue<PatchInfo> patchInfo = new InjectedValue<PatchInfo>();
     private final NetworkInterfaceBinding interfaceBinding;
     private final DomainController domainController;
     private final HostControllerEnvironment environment;
@@ -75,6 +78,7 @@ class NewServerInventoryService implements Service<ServerInventory> {
         final NewServerInventoryService inventory = new NewServerInventoryService(domainController, environment, interfaceBinding, port);
         serviceTarget.addService(NewServerInventoryService.SERVICE_NAME, inventory)
                 .addDependency(ProcessControllerConnectionService.SERVICE_NAME, AsyncProcessControllerClient.class, inventory.getClient())
+                .addDependency(PatchInfoService.NAME, PatchInfo.class, inventory.patchInfo)
                 .install();
         return inventory.futureInventory;
     }
@@ -87,7 +91,7 @@ class NewServerInventoryService implements Service<ServerInventory> {
         try {
             final AsyncProcessControllerClient client = this.client.getValue();
             final InetSocketAddress binding = new InetSocketAddress(interfaceBinding.getAddress(), port);
-            serverInventory = new ServerInventoryImpl(domainController, environment, binding, client);
+            serverInventory = new ServerInventoryImpl(domainController, environment, binding, client, patchInfo.getValue());
             client.registerEventListener(new AsyncProcessControllerClient.ProcessEventListener() {
                 @Override
                 public void onEvent(final AsyncProcessControllerClient.ProcessEvent event) {
@@ -113,15 +117,13 @@ class NewServerInventoryService implements Service<ServerInventory> {
         futureInventory.setInventory(serverInventory);
     }
 
-    public Future<ServerInventory> getInventoryFuture(){
-        return futureInventory;
-    }
-
     /** {@inheritDoc} */
     @Override
     public synchronized void stop(StopContext context) {
         // TODO unregister process event listener
+        this.serverInventory.stopServers(-1);
         this.serverInventory = null;
+
     }
 
     /** {@inheritDoc} */

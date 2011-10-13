@@ -22,6 +22,7 @@
 
 package org.jboss.as.host.controller;
 
+import org.jboss.as.controller.descriptions.DescriptionProvider;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIBE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
@@ -36,9 +37,13 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUC
 import java.io.IOException;
 import java.security.AccessController;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -62,6 +67,7 @@ import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.remote.ModelControllerClientOperationHandlerFactoryService;
 import org.jboss.as.controller.remote.RemoteProxyController;
@@ -77,6 +83,7 @@ import org.jboss.as.host.controller.RemoteDomainConnectionService.RemoteFileRepo
 import org.jboss.as.host.controller.mgmt.MasterDomainControllerOperationHandlerService;
 import org.jboss.as.host.controller.mgmt.ServerToHostOperationHandlerFactoryService;
 import org.jboss.as.host.controller.operations.LocalHostControllerInfoImpl;
+import org.jboss.as.host.controller.operations.RemotePatchOperationHandler;
 import org.jboss.as.host.controller.operations.StartServersHandler;
 import org.jboss.as.network.NetworkInterfaceBinding;
 import org.jboss.as.process.ExitCodes;
@@ -106,7 +113,7 @@ import org.jboss.threads.JBossThreadFactory;
  *
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
-public class DomainModelControllerService extends AbstractControllerService implements DomainController, UnregisteredHostChannelRegistry {
+public class DomainModelControllerService extends AbstractControllerService implements DomainController, UnregisteredHostChannelRegistry, HostControllerRegistration {
 
     private static final Logger log = Logger.getLogger("org.jboss.as.host.controller");
 
@@ -131,6 +138,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
 
     private volatile ServerInventory serverInventory;
 
+    private final List<HostControllerRegistration.Callback> hcCallbacks = new ArrayList<HostControllerRegistration.Callback>();
 
     public static ServiceController<ModelController> addService(final ServiceTarget serviceTarget,
                                                             final HostControllerEnvironment environment,
@@ -200,6 +208,12 @@ public class DomainModelControllerService extends AbstractControllerService impl
         modelNodeRegistration.registerProxyController(pe, hostControllerClient);
         hostProxies.put(pe.getValue(), hostControllerClient);
 
+        synchronized (hcCallbacks) {
+            for(final HostControllerRegistration.Callback callback : hcCallbacks) {
+                callback.registered(pe.getValue(), hostControllerClient);
+            }
+        }
+
         Logger.getLogger("org.jboss.domain").info("Registered remote slave host " + pe.getValue());
     }
 
@@ -209,6 +223,11 @@ public class DomainModelControllerService extends AbstractControllerService impl
             Logger.getLogger("org.jboss.domain").info("Unregistered remote slave host " + id);
         }
         modelNodeRegistration.unregisterProxyController(PathElement.pathElement(HOST, id));
+        synchronized (hcCallbacks) {
+            for(final HostControllerRegistration.Callback callback : hcCallbacks) {
+                callback.unregistered(id);
+            }
+        }
     }
 
     @Override
@@ -265,9 +284,19 @@ public class DomainModelControllerService extends AbstractControllerService impl
 
     @Override
     protected void initModel(Resource rootResource, ManagementResourceRegistration rootRegistration) {
+        final AsyncProcessControllerClient client = injectedProcessControllerConnection.getValue();
         DomainModelUtil.updateCoreModel(rootResource.getModel());
         HostModelUtil.createHostRegistry(rootRegistration, configurationPersister, environment, localFileRepository,
-                hostControllerInfo, new DelegatingServerInventory(), remoteFileRepository, this, this);
+                hostControllerInfo, new DelegatingServerInventory(), remoteFileRepository, this, this, client);
+
+        rootRegistration.registerOperationHandler(RemotePatchOperationHandler.OPERATION_NAME, new RemotePatchOperationHandler(this, hostControllerInfo, injectedExecutorService.getValue()),
+                new DescriptionProvider() {
+                    @Override
+                    public ModelNode getModelDescription(Locale locale) {
+                        return new ModelNode();
+                    }
+                }, false, OperationEntry.EntryType.PRIVATE);
+
         this.modelNodeRegistration = rootRegistration;
     }
 
@@ -486,6 +515,22 @@ public class DomainModelControllerService extends AbstractControllerService impl
             callback.proxyCreated(proxy);
         }
         return proxy;
+    }
+
+    @Override
+    public void registerCallback(Callback callback) {
+        synchronized (hcCallbacks) {
+            hcCallbacks.add(callback);
+        }
+    }
+
+    @Override
+    public void unregisterCallback(Callback callback) {
+        synchronized (hcCallbacks) {
+            if(hcCallbacks.remove(callback)) {
+                callback.removed();
+            }
+        }
     }
 
     private class DelegatingServerInventory implements ServerInventory {

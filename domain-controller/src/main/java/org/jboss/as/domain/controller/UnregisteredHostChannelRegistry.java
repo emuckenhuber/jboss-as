@@ -55,8 +55,6 @@ public interface UnregisteredHostChannelRegistry {
     /**
      * Called when {@link UnregisteredHostChannelRegistry#popChannelAndCreateProxy(String)} creates a proxy
      * to get hold of the proxies ManagementOperationHandler
-     *
-     * @param handler the handler of the created proxy
      */
     interface ProxyCreatedCallback {
         /**

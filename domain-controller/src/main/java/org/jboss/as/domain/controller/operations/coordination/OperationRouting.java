@@ -83,10 +83,13 @@ public class OperationRouting {
                 // TODO use a flag or something
                 if("start".equals(operationName) || "stop".equals(operationName) || "restart".equals(operationName)) {
                     routing = new OperationRouting(targetHost, false);
+                } else if ("apply-patch".equals(operationName)) {
+                    routing = new OperationRouting(targetHost, false);
                 } else {
                     routing = new OperationRouting(targetHost, true);
                 }
             }
+
         } else {
             Set<OperationEntry.Flag> flags = registry.getOperationFlags(PathAddress.EMPTY_ADDRESS, operation.require(OP).asString());
             checkNull(operation, flags);
@@ -99,6 +102,8 @@ public class OperationRouting {
             } else if (flags.contains(OperationEntry.Flag.DEPLOYMENT_UPLOAD)) {
                 // Deployment ops should be executed on the master DC only
                 routing = new OperationRouting(localHostControllerInfo.getLocalHostName(), false);
+            } else if ("patch".equals(operationName)) {
+                routing = new OperationRouting(false);
             }
         }
 
@@ -210,4 +215,18 @@ public class OperationRouting {
     public boolean isLocalCallNeeded(final String localHostName) {
         return isLocalOnly(localHostName) || hosts.size() == 0 || hosts.contains(localHostName);
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder builder = new StringBuilder();
+        builder.append(getClass().getSimpleName()).append('@');
+        builder.append(Integer.toHexString(System.identityHashCode(this)));
+        builder.append('{');
+        builder.append("twoStep=").append(twoStep);
+        builder.append(", routeToMaster=").append(routeToMaster);
+        builder.append(", hosts=").append(hosts);
+        builder.append('}');
+        return builder.toString();
+    }
+
 }

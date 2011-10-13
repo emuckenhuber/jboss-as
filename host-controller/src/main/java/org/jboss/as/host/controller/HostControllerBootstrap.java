@@ -28,8 +28,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.patching.service.PatchInfo;
+import org.jboss.as.patching.service.PatchInfoService;
 import org.jboss.as.server.services.path.AbsolutePathService;
 import org.jboss.as.threads.ThreadFactoryService;
+import org.jboss.as.version.Version;
 import org.jboss.logging.Logger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContainer;
@@ -80,6 +83,9 @@ public class HostControllerBootstrap {
         // Thread Factory and Executor Services
         final ServiceName threadFactoryServiceName = SERVICE_NAME_BASE.append("thread-factory");
         final ServiceName executorServiceName = SERVICE_NAME_BASE.append("executor");
+
+        // Setup the patch repository info
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, environment.getHomeDir())).install();
 
         serviceTarget.addService(threadFactoryServiceName, new ThreadFactoryService()).install();
         final HostControllerExecutorService executorService = new HostControllerExecutorService();

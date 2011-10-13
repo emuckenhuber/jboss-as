@@ -18,6 +18,7 @@
  */
 package org.jboss.as.host.controller;
 
+import org.jboss.as.controller.descriptions.DescriptionProvider;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.AUTO_START;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.BOOT_TIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
@@ -57,6 +58,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VAU
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
 import java.util.EnumSet;
+import java.util.Locale;
 
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -102,6 +104,7 @@ import org.jboss.as.host.controller.operations.LocalDomainControllerAddHandler;
 import org.jboss.as.host.controller.operations.LocalDomainControllerRemoveHandler;
 import org.jboss.as.host.controller.operations.LocalHostAddHandler;
 import org.jboss.as.host.controller.operations.LocalHostControllerInfoImpl;
+import org.jboss.as.host.controller.operations.LocalPatchOperationHandler;
 import org.jboss.as.host.controller.operations.NativeManagementAddHandler;
 import org.jboss.as.host.controller.operations.NativeManagementAttributeHandlers;
 import org.jboss.as.host.controller.operations.RemoteDomainControllerAddHandler;
@@ -113,7 +116,9 @@ import org.jboss.as.host.controller.operations.ServerStartHandler;
 import org.jboss.as.host.controller.operations.ServerStatusHandler;
 import org.jboss.as.host.controller.operations.ServerStopHandler;
 import org.jboss.as.host.controller.operations.StartServersHandler;
+import org.jboss.as.patching.service.PatchingRegistration;
 import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
+import org.jboss.as.process.AsyncProcessControllerClient;
 import org.jboss.as.server.services.net.SpecifiedInterfaceAddHandler;
 import org.jboss.as.server.services.net.SpecifiedInterfaceRemoveHandler;
 import org.jboss.as.server.services.security.VaultAddHandler;
@@ -132,25 +137,14 @@ import org.jboss.dmr.ModelType;
 public class HostModelUtil {
 
     public static void initCoreModel(final ModelNode root) {
-        root.get(NAME);
-        root.get(NAMESPACES).setEmptyList();
-        root.get(SCHEMA_LOCATIONS).setEmptyList();
-        root.get(EXTENSION);
-        root.get(SYSTEM_PROPERTY);
-        root.get(PATH);
-        root.get(CORE_SERVICE);
-        root.get(SERVER_CONFIG);
-        root.get(DOMAIN_CONTROLLER);
-        root.get(INTERFACE);
-        root.get(JVM);
-        root.get(RUNNING_SERVER);
+        //
     }
 
     public static void createHostRegistry(final ManagementResourceRegistration root, final HostControllerConfigurationPersister configurationPersister,
                                           final HostControllerEnvironment environment, final FileRepository localFileRepository,
                                           final LocalHostControllerInfoImpl hostControllerInfo, final ServerInventory serverInventory,
                                           final RemoteFileRepository remoteFileRepository, final DomainController domainController,
-                                          final UnregisteredHostChannelRegistry registry) {
+                                          final UnregisteredHostChannelRegistry registry, final AsyncProcessControllerClient client) {
         // Add of the host itself
         ManagementResourceRegistration hostRegistration = root.registerSubModel(PathElement.pathElement(HOST), HostDescriptionProviders.HOST_ROOT_PROVIDER);
         LocalHostAddHandler handler = LocalHostAddHandler.getInstance(hostControllerInfo);
@@ -167,6 +161,14 @@ public class HostModelUtil {
         root.registerOperationHandler(READ_OPERATION_NAMES_OPERATION, GlobalOperationHandlers.READ_OPERATION_NAMES, CommonProviders.READ_OPERATION_NAMES_PROVIDER, true, OperationEntry.EntryType.PUBLIC, flags);
         root.registerOperationHandler(READ_OPERATION_DESCRIPTION_OPERATION, GlobalOperationHandlers.READ_OPERATION_DESCRIPTION, CommonProviders.READ_OPERATION_PROVIDER, true, OperationEntry.EntryType.PUBLIC, flags);
         root.registerOperationHandler(WRITE_ATTRIBUTE_OPERATION, GlobalOperationHandlers.WRITE_ATTRIBUTE, CommonProviders.WRITE_ATTRIBUTE_PROVIDER, true);
+
+        hostRegistration.registerOperationHandler(LocalPatchOperationHandler.OPERATION_NAME, new LocalPatchOperationHandler(client, environment), new DescriptionProvider() {
+            @Override
+            public ModelNode getModelDescription(Locale locale) {
+                return new ModelNode();
+            }
+        }, false, OperationEntry.EntryType.PRIVATE);
+        PatchingRegistration.registerSubModel(hostRegistration);
 
         // Other root resource operations
         XmlMarshallingHandler xmh = new HostXmlMarshallingHandler(configurationPersister.getHostPersister(), hostControllerInfo);

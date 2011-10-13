@@ -30,6 +30,7 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -135,6 +136,28 @@ public final class AsyncProcessControllerClient implements Closeable {
         task.command = cmd;
         task.workDir = workingDir;
         task.env = env;
+        return listeners.exec(task, client);
+    }
+
+    /**
+     * Add a privileged process.
+     *
+     * @param processName the process name
+     * @param authKey the auth key
+     * @param cmd the command
+     * @param workingDir the working dir
+     * @param env the environment
+     * @param restart whether the PC tries to respawn
+     * @return the future
+     * @throws IOException
+     */
+    public Future<Void> addPrivilegedProcess(final String processName, final byte[] authKey, final String[] cmd, final String workingDir, final Map<String, String> env, final boolean restart) throws IOException {
+        final PrivilegedAddTask task = new PrivilegedAddTask(listeners, processName);
+        task.authKey = authKey;
+        task.command = cmd;
+        task.workDir = workingDir;
+        task.env = env;
+        task.restart = restart;
         return listeners.exec(task, client);
     }
 
@@ -470,6 +493,21 @@ public final class AsyncProcessControllerClient implements Closeable {
         void sendRequest(ProcessControllerClient client) throws IOException {
             client.addProcess(processName, authKey, command, workDir, env);
         }
+    }
+
+    static class PrivilegedAddTask extends ProcessAddTask {
+
+        boolean restart;
+
+        PrivilegedAddTask(final Listeners listeners, final String processName) {
+            super(listeners, processName);
+        }
+
+        @Override
+        void sendRequest(ProcessControllerClient client) throws IOException {
+            client.addPrivilegedProcess(processName, authKey, command, workDir, env, restart);
+        }
+
     }
 
     static class ProcessStartTask extends ProcessTask {

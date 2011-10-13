@@ -32,6 +32,7 @@ import java.util.Random;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.as.process.AsyncProcessControllerClient;
 import org.jboss.as.process.ProcessControllerClient;
@@ -99,7 +100,7 @@ class ManagedServer {
     private final InetSocketAddress managementSocket;
     private final ManagedServerBootConfiguration bootConfiguration;
     private final byte[] authKey;
-    private volatile ServerState state;
+    private AtomicReference<ServerState> state = new AtomicReference<ServerState>(ServerState.STOPPED);
     private volatile ManagementChannel serverManagementChannel;
 
     public ManagedServer(final String serverName, final AsyncProcessControllerClient processControllerClient,
@@ -118,8 +119,6 @@ class ManagedServer {
         // TODO: use a RNG with a secure seed
         new Random().nextBytes(authKey);
         this.authKey = authKey;
-
-        this.state = ServerState.STOPPED;
     }
 
     public String getServerName() {
@@ -135,11 +134,15 @@ class ManagedServer {
     }
 
     public ServerState getState() {
-        return state;
+        return state.get();
     }
 
-    public void setState(ServerState state) {
-        this.state = state;
+    boolean compareAndSetState(ServerState expected, ServerState update) {
+        return state.compareAndSet(expected, update);
+    }
+
+    void setState(final ServerState state) {
+        this.state.set(state);
     }
 
     void setServerManagementChannel(ManagementChannel serverManagementChannel) {
@@ -160,35 +163,49 @@ class ManagedServer {
 
     void createServerProcess() throws IOException {
         synchronized(lock) {
-            final List<String> command = bootConfiguration.getServerLaunchCommand();
-            final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
-            final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
-            // Add the process to the process controller
-            processControllerClient.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
-            this.state = ServerState.BOOTING;
+            if(compareAndSetState(ServerState.STOPPED, ServerState.BOOTING)) {
+                try {
+                    final List<String> command = bootConfiguration.getServerLaunchCommand();
+                    final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
+                    final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
+                    // Add the process to the process controller
+                    processControllerClient.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
+                } catch (IOException e) {
+                    setState(ServerState.FAILED);
+                    throw e;
+                }
+            } else {
+                throw new RuntimeException(String.format("Server %s in wrong state. expected %s, was %s", serverName, ServerState.STOPPED, getState()));
+            }
         }
     }
 
     void startServerProcess() throws IOException {
         synchronized(lock) {
-            setState(ServerState.BOOTING);
+            if(compareAndSetState(ServerState.BOOTING, ServerState.STARTING)) {
+                try {
+                    final List<ModelNode> bootUpdates = bootConfiguration.getBootUpdates();
 
-            final List<ModelNode> bootUpdates = bootConfiguration.getBootUpdates();
+                    // Launch the server process
+                    processControllerClient.startProcess(serverProcessName);
+                    ServiceActivator hostControllerCommActivator = HostCommunicationServices.createServerCommuncationActivator(managementSocket, serverName, serverProcessName, authKey, bootConfiguration.isManagementSubsystemEndpoint());
+                    ServerStartTask startTask = new ServerStartTask(serverName, 0, Collections.<ServiceActivator>singletonList(hostControllerCommActivator), bootUpdates);
+                    final Marshaller marshaller = MARSHALLER_FACTORY.createMarshaller(CONFIG);
+                    // Send the StartTask to the process
+                    final OutputStream os = processControllerClient.sendStdin(serverProcessName);
+                    marshaller.start(Marshalling.createByteOutput(os));
+                    marshaller.writeObject(startTask);
+                    marshaller.finish();
+                    marshaller.close();
+                    os.close();
 
-            // Launch the server process
-            processControllerClient.startProcess(serverProcessName);
-            ServiceActivator hostControllerCommActivator = HostCommunicationServices.createServerCommuncationActivator(managementSocket, serverName, serverProcessName, authKey, bootConfiguration.isManagementSubsystemEndpoint());
-            ServerStartTask startTask = new ServerStartTask(serverName, 0, Collections.<ServiceActivator>singletonList(hostControllerCommActivator), bootUpdates);
-            final Marshaller marshaller = MARSHALLER_FACTORY.createMarshaller(CONFIG);
-            // Send the StartTask to the process
-            final OutputStream os = processControllerClient.sendStdin(serverProcessName);
-            marshaller.start(Marshalling.createByteOutput(os));
-            marshaller.writeObject(startTask);
-            marshaller.finish();
-            marshaller.close();
-            os.close();
-
-            setState(ServerState.STARTING);
+                } catch(IOException e) {
+                    setState(ServerState.FAILED);
+                    throw e;
+                }
+            } else {
+                throw new RuntimeException(String.format("Server %s in wrong state. expected %s, was %s", serverName, ServerState.STOPPED, getState()));
+            }
         }
     }
 

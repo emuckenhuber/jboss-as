@@ -52,7 +52,36 @@ if $cygwin; then
     JAVA_HOME=`cygpath --path --windows "$JAVA_HOME"`
 fi
 
+PATCHES=""
+if [ -f $JBOSS_HOME/patches/.metadata/cumulative ]; then
+    REF=`head -n 1 $JBOSS_HOME/patches/.metadata/cumulative`;
+    if [ -f $JBOSS_HOME/patches/.metadata/references/$REF ]; then
+        for PATCH in `cat $JBOSS_HOME/patches/.metadata/references/$REF`; do
+            if [ "x$PATCHES" = "x" ]; then
+                PATCHES=$JBOSS_HOME/patches/$PATCH
+            else
+                PATCHES=$PATCHES:$JBOSS_HOME/patches/$PATCH
+            fi
+        done
+    fi
+    if [ -d $JBOSS_HOME/patches/$REF]; then
+        if [ "x$PATCHES" = "x" ]; then
+            PATCHES=$JBOSS_HOME/patches/$REF
+        else
+            PATCHES=$PATCHES:$JBOSS_HOME/patches/$REF
+        fi
+    fi
+fi
+
+if [ "x$MODULEPATH" = "x" ]; then
+    MODULEPATH="$JBOSS_HOME/modules"
+fi
+
+if [ "x$PATCHES" != "x" ]; then
+    MODULEPATH="$PATCHES:$MODULEPATH"
+fi
+
 # Sample JPDA settings for remote socket debugging
 #JAVA_OPTS="$JAVA_OPTS -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n"
 
-eval \"$JAVA\" $JAVA_OPTS -jar \"$JBOSS_HOME/jboss-modules.jar\" -logmodule "org.jboss.logmanager" -mp \"$JBOSS_HOME/modules\" org.jboss.as.cli '"$@"'
+eval \"$JAVA\" $JAVA_OPTS -jar \"$JBOSS_HOME/jboss-modules.jar\" -logmodule "org.jboss.logmanager" -mp \"$MODULEPATH\" org.jboss.as.cli '"$@"'

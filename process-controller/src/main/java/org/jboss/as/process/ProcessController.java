@@ -195,7 +195,7 @@ public final class ProcessController {
                     }
                 }
             }
-            // Shutdown remaining processes
+            // Shutdown or remove remaining processes
             for (ManagedProcess process : processes.values()) {
                 process.shutdown();
             }
