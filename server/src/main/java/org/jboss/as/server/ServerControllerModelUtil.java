@@ -128,26 +128,15 @@ import org.jboss.as.server.services.security.VaultWriteAttributeHandler;
 import org.jboss.dmr.ModelNode;
 
 /**
+ * Utility class initializing the core operation handlers for the server controller.
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  * @author David Bosschaert
- * @version $Revision: 1.1 $
  */
 public class ServerControllerModelUtil {
 
     public static void updateCoreModel(final ModelNode root) {
-        root.get(NAMESPACES).setEmptyList();
-        root.get(SCHEMA_LOCATIONS).setEmptyList();
-        root.get(NAME);
-        root.get(CORE_SERVICE);
-        root.get(PROFILE_NAME);
-        root.get(EXTENSION);
-        root.get(SYSTEM_PROPERTY);
-        root.get(PATH);
-        root.get(SUBSYSTEM);
-        root.get(INTERFACE);
-        root.get(SOCKET_BINDING_GROUP);
-        root.get(DEPLOYMENT);
+        //
     }
 
     public static void initOperations(final ManagementResourceRegistration root, final ContentRepository contentRepository,

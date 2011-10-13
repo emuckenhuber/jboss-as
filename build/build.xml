@@ -590,6 +590,12 @@
             <maven-resource group="org.jboss.as" artifact="jboss-as-platform-mbean"/>
         </module-def>
 
+        <module-def name="org.jboss.as.patching">
+            <maven-resource group="org.jboss.as" artifact="jboss-as-patching"/>
+        </module-def>
+
+        <module-def name="org.jboss.as.patching.process" />
+
         <module-def name="org.jboss.as.process-controller">
             <maven-resource group="org.jboss.as" artifact="jboss-as-process-controller"/>
         </module-def>

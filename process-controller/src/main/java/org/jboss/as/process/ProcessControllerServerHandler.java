@@ -138,6 +138,7 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                             dataStream.close();
                             break;
                         }
+                        case Protocol.ADD_PRIVILEGED_PROCESS:
                         case Protocol.ADD_PROCESS: {
                             if (isPrivileged) {
                                 final String processName = readUTFZBytes(dataStream);
@@ -154,8 +155,10 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                                     env.put(readUTFZBytes(dataStream), readUTFZBytes(dataStream));
                                 }
                                 final String workingDirectory = readUTFZBytes(dataStream);
+                                final boolean privileged = cmd == Protocol.ADD_PRIVILEGED_PROCESS;
+                                final boolean restart = privileged ? readBoolean(dataStream) : false;
                                 SERVER_LOGGER.tracef("Received add_process for process %s", processName);
-                                processController.addProcess(processName, Arrays.asList(command), env, workingDirectory, false, false);
+                                processController.addProcess(processName, Arrays.asList(command), env, workingDirectory, privileged, restart);
                             } else {
                                 SERVER_LOGGER.tracef("Ignoring add_process message from untrusted source");
                             }

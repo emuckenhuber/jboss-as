@@ -129,17 +129,7 @@ public class DomainModelUtil {
      * @param rootModel - the model to be updated.
      */
     public static void updateCoreModel(final ModelNode rootModel) {
-        rootModel.get(NAMESPACES).setEmptyList();
-        rootModel.get(SCHEMA_LOCATIONS).setEmptyList();
-        rootModel.get(EXTENSION);
-        rootModel.get(PATH);
-        rootModel.get(SYSTEM_PROPERTY);
-        rootModel.get(PROFILE);
-        rootModel.get(INTERFACE);
-        rootModel.get(SOCKET_BINDING_GROUP);
-        rootModel.get(DEPLOYMENT);
-        rootModel.get(SERVER_GROUP);
-        rootModel.get(HOST);
+        // nothing to do
     }
 
     public static ExtensionContext initializeMasterDomainRegistry(final ManagementResourceRegistration root, final ExtensibleConfigurationPersister configurationPersister,

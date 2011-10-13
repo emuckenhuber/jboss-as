@@ -22,6 +22,7 @@
 package org.jboss.as.host.controller.operations;
 
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONNECTIONS;

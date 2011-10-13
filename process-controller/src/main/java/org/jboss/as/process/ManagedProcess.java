@@ -241,6 +241,14 @@ final class ManagedProcess {
                 log.stoppingProcess(processName);
                 stopRequested = true;
                 StreamUtils.safeClose(stdin);
+            } else if( state == State.DOWN) {
+                // Remove in case the process is already stopped
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        processController.removeProcess(processName);
+                    }
+                }).start();
             }
             state = State.STOPPING;
         }
@@ -286,6 +294,8 @@ final class ManagedProcess {
                 state = State.DOWN;
 
                 if (shutdown) {
+                    processController.removeProcess(processName);
+                } else if (exitCode == -6666) {
                     processController.removeProcess(processName);
                 } else if (isPrivileged() && exitCode == ExitCodes.HOST_CONTROLLER_ABORT_EXIT_CODE) {
                     // Host Controller abort

@@ -228,6 +228,56 @@ public final class ProcessControllerClient implements Closeable {
         }
     }
 
+    public void addPrivilegedProcess(String processName, byte[] authKey, String[] cmd, String workingDir, Map<String, String> env, boolean restart) throws IOException {
+        if (processName == null) {
+            throw MESSAGES.nullVar("processName");
+        }
+        if (authKey == null) {
+            throw MESSAGES.nullVar("authKey");
+        }
+        if (cmd == null) {
+            throw MESSAGES.nullVar("cmd");
+        }
+        if (workingDir == null) {
+            throw MESSAGES.nullVar("workingDir");
+        }
+        if (env == null) {
+            throw MESSAGES.nullVar("env");
+        }
+        if (cmd.length < 1) {
+            throw MESSAGES.invalidCommandLen();
+        }
+        if (authKey.length != 16) {
+            throw MESSAGES.invalidAuthKeyLen();
+        }
+        final OutputStream os = connection.writeMessage();
+        try {
+            os.write(Protocol.ADD_PRIVILEGED_PROCESS);
+            writeUTFZBytes(os, processName);
+            os.write(authKey);
+            writeInt(os, cmd.length);
+            for (String c : cmd) {
+                writeUTFZBytes(os, c);
+            }
+            writeInt(os, env.size());
+            for (String key : env.keySet()) {
+                final String value = env.get(key);
+                writeUTFZBytes(os, key);
+                if (value != null) {
+                    writeUTFZBytes(os, value);
+                } else {
+                    writeUTFZBytes(os, "");
+                }
+            }
+            writeUTFZBytes(os, workingDir);
+            writeBoolean(os, restart);
+            os.close();
+        } finally {
+            safeClose(os);
+        }
+    }
+
+
     public void startProcess(String processName) throws IOException {
         if (processName == null) {
             throw MESSAGES.nullVar("processName");
