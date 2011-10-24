@@ -64,14 +64,14 @@ public class PatchingRegistration {
                         context.getResult().get("version").set(info.getVersion());
                         context.getResult().get("cumulative").set(info.getCumulativeID());
                         for(final String patch : info.getPatchIDs()) {
-                            context.getResult().get("patch").add(patch);
+                            context.getResult().get("patches").add(patch);
                         }
                         context.completeStep();
                     }
                 }, OperationContext.Stage.RUNTIME);
                 context.completeStep();
             }
-        }, NULL, EnumSet.of(OperationEntry.Flag.READ_ONLY));
+        }, NULL, false, OperationEntry.EntryType.PRIVATE,  EnumSet.of(OperationEntry.Flag.READ_ONLY));
 
 
     }

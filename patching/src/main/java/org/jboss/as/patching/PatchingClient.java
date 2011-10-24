@@ -31,7 +31,7 @@ import java.io.Closeable;
 import java.net.UnknownHostException;
 
 /**
- * The patching client.
+ * The base patching client.
  *
  * @author Emanuel Muckenhuber
  */
@@ -67,19 +67,7 @@ public interface PatchingClient<T extends PatchingPlanBuilder> extends Closeable
          * @return the patching client
          */
         public static DomainPatchingClient createDomainClient(final ModelControllerClient client) {
-            return new DomainPatchingClientImpl(client);
-        }
-
-        /**
-         * Create a domain patching client
-         *
-         * @param host the host
-         * @param port the port
-         * @return the patching client
-         * @throws UnknownHostException
-         */
-        public static DomainPatchingClient createDomainClient(final String host, final int port) throws UnknownHostException {
-            return createDomainClient(ModelControllerClient.Factory.create(host, port));
+            return new PatchingClientDomain(client);
         }
 
         /**
@@ -89,7 +77,7 @@ public interface PatchingClient<T extends PatchingPlanBuilder> extends Closeable
          * @return the patching client
          */
         public static StandalonePatchingClient createStandaloneClient(final ModelControllerClient client) {
-            return new StandalonePatchingClientImpl(client);
+            return new PatchingClientStandalone(client);
         }
 
     }

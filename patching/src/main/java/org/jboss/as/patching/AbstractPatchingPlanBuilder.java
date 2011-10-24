@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Emanuel Muckenhuber
  */
-class AbstractPatchingPlanBuilder implements DomainPatchingPlanBuilder {
+abstract class AbstractPatchingPlanBuilder implements DomainPatchingPlanBuilder {
 
     private final BasicPatchingPlan plan;
 
@@ -59,11 +59,11 @@ class AbstractPatchingPlanBuilder implements DomainPatchingPlanBuilder {
     static class BasicPatchingPlan implements DomainPatchingPlan {
 
         private final Patch patch;
-        private final DomainPatchingClientImpl client;
+        private final PatchingClientDomain client;
         private final PatchContentLoader loader;
         private final List<HostEntry> hosts = new ArrayList<HostEntry>();
 
-        protected BasicPatchingPlan(final Patch patch, final PatchContentLoader loader, DomainPatchingClientImpl client) {
+        protected BasicPatchingPlan(final Patch patch, final PatchContentLoader loader, PatchingClientDomain client) {
             this.patch = patch;
             this.client = client;
             this.loader = loader;
@@ -125,7 +125,7 @@ class AbstractPatchingPlanBuilder implements DomainPatchingPlanBuilder {
 
     static class InitialPlanBuilder extends AbstractPatchingPlanBuilder {
 
-        InitialPlanBuilder(final Patch patch, final PatchContentLoader loader, DomainPatchingClientImpl client) {
+        InitialPlanBuilder(final Patch patch, final PatchContentLoader loader, PatchingClientDomain client) {
             super(new BasicPatchingPlan(patch, loader, client));
         }
 

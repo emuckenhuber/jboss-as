@@ -163,26 +163,22 @@ class ManagedServer {
 
     void createServerProcess() throws IOException {
         synchronized(lock) {
-            if(compareAndSetState(ServerState.STOPPED, ServerState.BOOTING)) {
-                try {
-                    final List<String> command = bootConfiguration.getServerLaunchCommand();
-                    final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
-                    final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
-                    // Add the process to the process controller
-                    processControllerClient.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
-                } catch (IOException e) {
-                    setState(ServerState.FAILED);
-                    throw e;
-                }
-            } else {
-                throw new RuntimeException(String.format("Server %s in wrong state. expected %s, was %s", serverName, ServerState.STOPPED, getState()));
+            try {
+                final List<String> command = bootConfiguration.getServerLaunchCommand();
+                final Map<String, String> env = bootConfiguration.getServerLaunchEnvironment();
+                final HostControllerEnvironment environment = bootConfiguration.getHostControllerEnvironment();
+                // Add the process to the process controller
+                processControllerClient.addProcess(serverProcessName, authKey, command.toArray(new String[command.size()]), environment.getHomeDir().getAbsolutePath(), env);
+            } catch (IOException e) {
+                setState(ServerState.FAILED);
+                throw e;
             }
         }
     }
 
     void startServerProcess() throws IOException {
         synchronized(lock) {
-            if(compareAndSetState(ServerState.BOOTING, ServerState.STARTING)) {
+            if(compareAndSetState(ServerState.STOPPED, ServerState.STARTING)) {
                 try {
                     final List<ModelNode> bootUpdates = bootConfiguration.getBootUpdates();
 

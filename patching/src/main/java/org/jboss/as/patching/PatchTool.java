@@ -26,18 +26,16 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MODEL_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.TO_REPLACE;
 import org.jboss.as.patching.domain.DomainPatchingClient;
 import org.jboss.as.patching.domain.DomainPatchingPlanBuilder;
 import org.jboss.as.patching.standalone.StandalonePatchingClient;
 import org.jboss.as.patching.standalone.StandalonePatchingPlan;
 import org.jboss.as.patching.standalone.StandalonePatchingPlanBuilder;
 import org.jboss.dmr.ModelNode;
-import org.jboss.dmr.ModelType;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -50,15 +48,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.Reader;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * The interactive patch tool.
@@ -74,10 +71,11 @@ public final class PatchTool {
     private static final ModelNode LAUNCH_TYPE_OP = new ModelNode();
     private static final ModelNode READ_HOST_NAMES = new ModelNode();
 
+    private static String swingLAF;
+
     static {
         // the patch info
         PATCH_INFO_OP.get(ModelDescriptionConstants.OP).set("patch-info");
-        PATCH_INFO_OP.get(ModelDescriptionConstants.OP_ADDR).add("host", "master");
         PATCH_INFO_OP.protect();
 
         //
@@ -93,17 +91,6 @@ public final class PatchTool {
         READ_HOST_NAMES.protect();
     }
 
-    private final BufferedReader stdin;
-    private static final PrintStream stdout = System.out;
-    private final ModelControllerClient client;
-
-    private static String swingLAF;
-
-    public PatchTool(final ModelControllerClient client, final BufferedReader in) {
-        this.stdin = in;
-        this.client = client;
-    }
-
     public static void main(final String[] args) throws Exception {
 
         final InputStreamReader converter = new InputStreamReader(System.in);
@@ -111,19 +98,27 @@ public final class PatchTool {
 
         final ModelControllerClient client = ModelControllerClient.Factory.create(HOST, PORT);
         try {
+            boolean standalone = PatchClientUtils.isStandalone(client);
+            final ModelNode patchInfo;
+            if(standalone) {
+                final ModelNode operation = PATCH_INFO_OP.clone();
+                operation.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
+                patchInfo = executeForResult(client, operation);
+            } else {
+                final ModelNode operation = PATCH_INFO_OP.clone();
+                operation.get(ModelDescriptionConstants.OP_ADDR).add("host", "master");
+                patchInfo = executeForResult(client, operation);
+            }
 
-            System.out.println("[patch-id]");
+            System.out.println("patch metadata builder...");
+            System.out.print("> patch-id: ");
             final String id = in.readLine();
-            System.out.println("[patch-type (cumulative, one-off]");
-            final String type = in.readLine();
-            System.out.println("[patch-content]");
+            final String type = chooseType(in).toString();
             final File content = chooseFile(in);
             if(content == null) {
                 throw new IllegalStateException("null file");
             }
             final byte[] hash = calculateHash(content);
-
-            final ModelNode patchInfo = executeForResult(client, PATCH_INFO_OP);
 
             final ModelNode patchModel = new ModelNode();
             patchModel.get(PatchImpl.PATCH_ID).set(id);
@@ -131,57 +126,81 @@ public final class PatchTool {
             patchModel.get(PatchImpl.PATCH_TYPE).set(type);
             patchModel.get(PatchImpl.CONTENT_HASH).set(hash);
             patchModel.get(PatchImpl.APPLIES_TO).add(patchInfo.get("version"));
-            patchModel.get("file").set(content.getAbsolutePath());
 
-            stdout.println(patchModel);
-
-            final PatchTool tool = new PatchTool(client, in);
-            if ("STANDALONE".equals(executeForResult(client, LAUNCH_TYPE_OP).asString())) {
+            final PatchContentLoader loader = PatchContentLoader.FilePatchContentLoader.create(content);
+            if (standalone) {
+                // Patch standalone
                 final StandalonePatchingClient patchingClient = PatchingClient.Factory.createStandaloneClient(client);
                 final Patch patch = patchingClient.create(patchModel);
                 // Create the plan
-                final StandalonePatchingPlanBuilder builder = patchingClient.createBuilder(patch, PatchContentLoader.FilePatchContentLoader.create(content));
+                final StandalonePatchingPlanBuilder builder = patchingClient.createBuilder(patch, loader);
                 final StandalonePatchingPlan plan = builder.build();
-                // Execute the plan
-                plan.execute();
+
+                System.out.println("Patch summary:");
+                System.out.println(patchModel);
+
+                if(executeQuestionMark(in)) {
+                    // Execute the plan
+                    plan.execute();
+
+                    System.out.print("Validate the patch (Note the server has to be restarted manually before...) [y/n]? ");
+                    boolean validate = yesQuestionMark(in);
+                    if(validate) {
+                        ModelNode newPatchInfo = null;
+                        TimeUnit.SECONDS.sleep(3);
+                        for(int i = 0; i < 5; i++) {
+                            try {
+                                final ModelNode operation = PATCH_INFO_OP.clone();
+                                operation.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
+                                newPatchInfo = executeForResult(client, operation);
+                            } catch (Exception e) {
+                                TimeUnit.SECONDS.sleep(1);
+                            }
+                        }
+                        if(newPatchInfo == null) {
+                            System.out.println("Failed to validate patch.");
+                        } else {
+                            System.out.println(newPatchInfo);
+                            PatchClientUtils.validatePatchInfo(newPatchInfo, patch);
+                        }
+                    }
+                    System.out.println("Done.");
+                }
             } else {
+                // Patch the domain
                 final DomainPatchingClient patchingClient = PatchingClient.Factory.createDomainClient(client);
                 final Patch patch = patchingClient.create(patchModel);
-                tool.runDomain(patchingClient, patch, PatchContentLoader.FilePatchContentLoader.create(content));
-            }
 
+                final List<String> hostNames = chooseHosts(readHostNames(client), in);
+                if(hostNames == null || hostNames.isEmpty()) {
+                    System.out.println("no host selected.");
+                    System.exit(1);
+                }
+                // Create the domain patching plan builder
+                final DomainPatchingPlanBuilder builder = patchingClient.createBuilder(patch, loader);
+                // Add all hosts
+                for(final String host : hostNames) {
+                    builder.addHost(host);
+                }
+                // Create the plan
+                final PatchingPlan plan = builder.build();
+
+                System.out.println("Patch summary:");
+                System.out.println(PatchImpl.toModelNode(patch));
+                System.out.println("Hosts to patch: " + hostNames);
+
+                if(executeQuestionMark(in)) {
+                    // execute the plan
+                    System.out.println("Running patch...");
+                    plan.execute();
+                    System.out.println("Done.");
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             client.close();
         }
-    }
-
-    /**
-     * Patch the domain
-     *
-     * @param patchingClient the domain patching client
-     * @param patch the patch
-     * @param loader the patch content loader
-     * @throws Exception
-     */
-    private void runDomain(final DomainPatchingClient patchingClient, final Patch patch, final PatchContentLoader loader) throws Exception {
-
-        final List<String> hostNames = chooseHosts(readHostNames(client), stdin);
-        if(hostNames == null || hostNames.isEmpty()) {
-            System.out.println("no hosts selected.");
-            System.exit(1);
-        }
-        // Create the domain patching plan builder
-        final DomainPatchingPlanBuilder builder = patchingClient.createBuilder(patch, loader);
-        // Add all hosts
-        for(final String host : hostNames) {
-            builder.addHost(host);
-        }
-        // Create the plan
-        final PatchingPlan plan = builder.build();
-        // execute the plan
-        plan.execute();
     }
 
     /**
@@ -193,8 +212,9 @@ public final class PatchTool {
     static List<String> chooseHosts(final Set<String> hostNames, final BufferedReader in) throws IOException {
         final List<String> selectedHosts = new ArrayList<String>();
         for(;;) {
-            System.out.println("available hosts:");
+            System.out.print("> available hosts: ");
             System.out.println(hostNames);
+            System.out.print("> select host ('Q' to quit): ");
             final String hostName= in.readLine();
             if (hostName.equals("Q")) {
                 return selectedHosts;
@@ -208,26 +228,58 @@ public final class PatchTool {
         }
     }
 
-    private static File chooseFile(BufferedReader in) throws IOException {
-        initializeSwing();
+    static boolean executeQuestionMark(final BufferedReader in) throws IOException {
+        System.out.print("Execute patch [y/n]? ");
+        return yesQuestionMark(in);
+    }
+
+    static boolean yesQuestionMark(final BufferedReader in) throws IOException {
+        final String execute = in.readLine().toLowerCase();
+        if("y".equals(execute) || "yes".equals(execute) || "yay".equals(execute)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static Patch.PatchType chooseType(final BufferedReader in) throws IOException {
+        for(;;) {
+            System.out.print("> patch-type [cumulative, one-off]: ");
+            final String line = in.readLine();
+            try {
+                final Patch.PatchType type = Patch.PatchType.valueOf(line.replace('-', '_').toUpperCase());
+                return type;
+            } catch (final Exception e) {
+                System.out.println("invalid type " + line);
+            }
+        }
+    }
+
+    private static File chooseFile(final BufferedReader in) throws IOException {
+        final ClassLoader old = Thread.currentThread().getContextClassLoader();
         try {
+            Thread.currentThread().setContextClassLoader(PatchTool.class.getClassLoader());
+            initializeSwing();
             JFileChooser chooser = new JFileChooser();
             FileNameExtensionFilter filter = new FileNameExtensionFilter("Archives", "zip");
             chooser.setFileFilter(filter);
+            System.out.println("> patch-content: ");
             int returnVal = chooser.showOpenDialog(null);
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 return chooser.getSelectedFile();
             }
         } catch (Exception e) {
-            System.err.println("failed to setup swing..");
+            System.err.println("failed to setup swing...");
             for(;;) {
-                System.out.println("[please enter file system path]");
+                System.out.print("> please enter file system path: ");
                 final String file = in.readLine();
                 final File f = new File(file);
                 if(f.isFile()) {
                     return f;
                 }
+                System.out.println(f.getAbsolutePath() + " does not exist.");
             }
+        } finally {
+            Thread.currentThread().setContextClassLoader(old);
         }
         return null;
     }
@@ -277,6 +329,7 @@ public final class PatchTool {
             swingLAF = MetalLookAndFeel.class.getName();
             System.setProperty("swing.defaultlaf", swingLAF);
         }
+
 
     }
 

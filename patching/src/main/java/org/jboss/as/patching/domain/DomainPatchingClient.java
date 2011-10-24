@@ -27,6 +27,8 @@ import org.jboss.as.patching.PatchContentLoader;
 import org.jboss.as.patching.PatchingClient;
 
 /**
+ * The domain specific {@code PatchingClient}.
+ *
  * @author Emanuel Muckenhuber
  */
 public interface DomainPatchingClient extends PatchingClient<DomainPatchingPlanBuilder> {

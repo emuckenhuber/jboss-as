@@ -111,7 +111,10 @@ import org.jboss.as.domain.controller.operations.deployment.ServerGroupDeploymen
 import org.jboss.as.domain.controller.operations.deployment.ServerGroupDeploymentReplaceHandler;
 import org.jboss.as.domain.controller.operations.deployment.ServerGroupDeploymentUndeployHandler;
 import org.jboss.as.domain.controller.resource.SocketBindingResourceDefinition;
+import org.jboss.as.server.ServerEnvironment;
+import org.jboss.as.server.controller.descriptions.ServerDescriptionConstants;
 import org.jboss.as.server.deployment.repository.api.ContentRepository;
+import org.jboss.as.server.operations.LaunchTypeHandler;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -174,6 +177,7 @@ public class DomainModelUtil {
         root.registerOperationHandler(SnapshotTakeHandler.OPERATION_NAME, snapshotTake, snapshotTake, false);
 
         root.registerReadOnlyAttribute(PROCESS_TYPE, isMaster ? ProcessTypeHandler.MASTER : ProcessTypeHandler.SLAVE, Storage.RUNTIME);
+        root.registerReadOnlyAttribute(ServerDescriptionConstants.LAUNCH_TYPE, new LaunchTypeHandler(ServerEnvironment.LaunchType.DOMAIN), Storage.RUNTIME);
 
         root.registerOperationHandler(GlobalOperationHandlers.VALIDATE_ADDRESS_OPERATION_NAME, GlobalOperationHandlers.VALIDATE_ADDRESS, CommonProviders.VALIDATE_ADDRESS_PROVIDER, true);
 

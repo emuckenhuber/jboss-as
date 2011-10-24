@@ -299,6 +299,8 @@ class ServerInventoryImpl implements ServerInventory {
         }
         domainController.unregisterRunningServer(server.getServerName());
         if (! stopping && server.getState() != ServerState.STOPPING){
+            // Update the server state
+            server.compareAndSetState(ServerState.STARTED, ServerState.STOPPED);
             //The server crashed, try to restart it
             // TODO: throttle policy
             try {

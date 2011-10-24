@@ -36,6 +36,7 @@ import org.jboss.as.patching.service.PatchInfoService;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Locale;
 
@@ -77,6 +78,9 @@ public class StandalonePatchOperationHandler extends AbstractPatchingTask implem
                             };
                         }
                     });
+                    write(newInfo);
+                } catch(IOException e) {
+                    context.getFailureDescription().set(e.getMessage());
                 } catch(PatchingException e) {
                     context.getFailureDescription().set(e.getMessage());
                 }

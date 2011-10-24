@@ -47,12 +47,14 @@ public class ServerShutdownHandler implements OperationStepHandler, DescriptionP
     /** {@inheritDoc} */
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        context.acquireControllerLock();
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                final int exitCode = operation.get("exit-code").asInt(0);
                 final Thread thread = new Thread(new Runnable() {
                     public void run() {
-                        System.exit(0);
+                        System.exit(exitCode);
                     }
                 });
                 // The intention is that this shutdown is graceful, and so the client gets a reply.
