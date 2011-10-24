@@ -117,6 +117,7 @@ import org.jboss.as.server.operations.ServerShutdownHandler;
 import org.jboss.as.server.operations.ServerStateAttributeHandler;
 import org.jboss.as.server.operations.SpecifiedPathAddHandler;
 import org.jboss.as.server.operations.SpecifiedPathRemoveHandler;
+import org.jboss.as.server.operations.StandalonePatchOperationHandler;
 import org.jboss.as.server.services.net.BindingGroupAddHandler;
 import org.jboss.as.server.services.net.NetworkInterfaceRuntimeHandler;
 import org.jboss.as.server.services.net.SocketBindingResourceDefinition;
@@ -188,7 +189,6 @@ public class ServerControllerModelUtil {
         //Hack to be able to access the registry for the jmx facade
         root.registerOperationHandler(RootResourceHack.NAME, RootResourceHack.INSTANCE, RootResourceHack.INSTANCE, false, OperationEntry.EntryType.PRIVATE);
 
-
         // Runtime operations
         if (serverEnvironment != null) {
             // Reload op -- does not work on a domain mode server
@@ -196,8 +196,10 @@ public class ServerControllerModelUtil {
                 root.registerOperationHandler(ServerReloadHandler.OPERATION_NAME, ServerReloadHandler.INSTANCE, ServerReloadHandler.INSTANCE, false);
 
             // The System.exit() based shutdown command is only valid for a server process directly launched from the command line
-            if (serverEnvironment.getLaunchType() == ServerEnvironment.LaunchType.STANDALONE)
+            if (serverEnvironment.getLaunchType() == ServerEnvironment.LaunchType.STANDALONE) {
                 root.registerOperationHandler(ServerShutdownHandler.OPERATION_NAME, ServerShutdownHandler.INSTANCE, ServerShutdownHandler.INSTANCE, false);
+                root.registerOperationHandler(StandalonePatchOperationHandler.OPERATION_NAME, StandalonePatchOperationHandler.INSTANCE, StandalonePatchOperationHandler.INSTANCE, false, EntryType.PRIVATE);
+            }
 
             root.registerReadOnlyAttribute(ServerDescriptionConstants.LAUNCH_TYPE, new LaunchTypeHandler(serverEnvironment.getLaunchType()), Storage.RUNTIME);
         }

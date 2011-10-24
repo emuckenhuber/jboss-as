@@ -23,6 +23,7 @@
 package org.jboss.as.server;
 
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.patching.service.PatchInfoService;
 import org.jboss.as.server.deployment.repository.impl.ContentRepositoryImpl;
 import org.jboss.as.server.deployment.repository.impl.ServerDeploymentRepositoryImpl;
 import org.jboss.as.server.mgmt.ShutdownHandler;
@@ -157,6 +158,9 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
         AbsolutePathService.addService("user.dir", System.getProperty("user.dir"), serviceTarget);
         AbsolutePathService.addService("user.home", System.getProperty("user.home"), serviceTarget);
         AbsolutePathService.addService("java.home", System.getProperty("java.home"), serviceTarget);
+
+        // Patch info
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, serverEnvironment.getHomeDir())).install();
 
         // BES 2011/06/11 -- moved this to AbstractControllerService.start()
 //        processState.setRunning();

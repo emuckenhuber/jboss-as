@@ -20,22 +20,24 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.domain;
 
-import java.util.concurrent.TimeUnit;
+import org.jboss.as.patching.Patch;
+import org.jboss.as.patching.PatchContentLoader;
+import org.jboss.as.patching.PatchingClient;
 
 /**
  * @author Emanuel Muckenhuber
  */
-public interface HostPatchingPlanBuilder extends PatchingPlanBuilder {
+public interface DomainPatchingClient extends PatchingClient<DomainPatchingPlanBuilder> {
 
     /**
-     * Specify a graceful shutdown timeout.
+     * Create a new patching plan builder.
      *
-     * @param timeout the timeout
-     * @param timeUnit the time unit
-     * @return the current plan builder
+     * @param patch the patch meta data
+     * @param contentLoader the content loader
+     * @return the plan builder
      */
-    HostPatchingPlanBuilder withGracefulTimeout(int timeout, TimeUnit timeUnit);
+    DomainPatchingPlanBuilder createBuilder(Patch patch, PatchContentLoader contentLoader);
 
 }

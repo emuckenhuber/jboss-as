@@ -23,10 +23,11 @@
 package org.jboss.as.patching;
 
 import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.as.patching.domain.DomainPatchingClient;
+import org.jboss.as.patching.standalone.StandalonePatchingClient;
 import org.jboss.dmr.ModelNode;
 
 import java.io.Closeable;
-import java.io.InputStream;
 import java.net.UnknownHostException;
 
 /**
@@ -34,7 +35,7 @@ import java.net.UnknownHostException;
  *
  * @author Emanuel Muckenhuber
  */
-public interface PatchingClient extends Closeable {
+public interface PatchingClient<T extends PatchingPlanBuilder> extends Closeable {
 
     /**
      * Create a patch metadata object from a detyped model.
@@ -51,7 +52,7 @@ public interface PatchingClient extends Closeable {
      * @param contentLoader the content loader
      * @return the plan builder
      */
-    PatchingPlanBuilder createBuilder(Patch patch, PatchContentLoader contentLoader);
+    T createBuilder(Patch patch, PatchContentLoader contentLoader);
 
     public class Factory {
 
@@ -60,25 +61,35 @@ public interface PatchingClient extends Closeable {
         }
 
         /**
-         * Create a patching client.
+         * Create a domain patching client.
          *
          * @param client the model controller client
          * @return the patching client
          */
-        public static PatchingClient create(final ModelControllerClient client) {
-            return new PatchingClientImpl(client);
+        public static DomainPatchingClient createDomainClient(final ModelControllerClient client) {
+            return new DomainPatchingClientImpl(client);
         }
 
         /**
-         * Create a patching client
+         * Create a domain patching client
          *
          * @param host the host
          * @param port the port
          * @return the patching client
          * @throws UnknownHostException
          */
-        public static PatchingClient create(final String host, final int port) throws UnknownHostException {
-            return create(ModelControllerClient.Factory.create(host, port));
+        public static DomainPatchingClient createDomainClient(final String host, final int port) throws UnknownHostException {
+            return createDomainClient(ModelControllerClient.Factory.create(host, port));
+        }
+
+        /**
+         * Create a standalone patching client.
+         *
+         * @param client the model controller client
+         * @return the patching client
+         */
+        public static StandalonePatchingClient createStandaloneClient(final ModelControllerClient client) {
+            return new StandalonePatchingClientImpl(client);
         }
 
     }

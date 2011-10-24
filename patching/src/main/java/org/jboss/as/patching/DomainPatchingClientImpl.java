@@ -22,24 +22,22 @@
 
 package org.jboss.as.patching;
 
-
-import org.jboss.as.controller.client.OperationBuilder;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_DEFAULTS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_RUNTIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MASTER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_RESOURCES_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 
+import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import org.jboss.as.patching.domain.DomainPatchingClient;
+import org.jboss.as.patching.domain.DomainPatchingPlan;
+import org.jboss.as.patching.domain.DomainPatchingPlanBuilder;
 import org.jboss.dmr.ModelNode;
 
 import java.io.IOException;
@@ -51,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Emanuel Muckenhuber
  */
-class PatchingClientImpl implements PatchingClient {
+class DomainPatchingClientImpl implements DomainPatchingClient {
 
     private static final ModelNode READ_RESOURCE = new ModelNode();
 
@@ -62,7 +60,7 @@ class PatchingClientImpl implements PatchingClient {
     }
 
     private final ModelControllerClient client;
-    public PatchingClientImpl(ModelControllerClient client) {
+    public DomainPatchingClientImpl(ModelControllerClient client) {
         this.client = client;
     }
 
@@ -72,11 +70,11 @@ class PatchingClientImpl implements PatchingClient {
     }
 
     @Override
-    public PatchingPlanBuilder createBuilder(final Patch patch, final PatchContentLoader contentLoader) {
+    public DomainPatchingPlanBuilder createBuilder(final Patch patch, final PatchContentLoader contentLoader) {
         return new AbstractPatchingPlanBuilder.InitialPlanBuilder(patch, contentLoader, this);
     }
 
-    void execute(final PatchingPlan plan) throws PatchingException {
+    void execute(final DomainPatchingPlan plan) throws PatchingException {
 
 //        TODO fix this operation
 //        final ModelNode operation = new ModelNode();

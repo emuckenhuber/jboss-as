@@ -20,34 +20,21 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.domain;
+
+import org.jboss.as.patching.PatchingPlan;
+
+import java.util.List;
 
 /**
- * The final patching plan.
- *
  * @author Emanuel Muckenhuber
  */
-public interface PatchingPlan {
+public interface DomainPatchingPlan extends PatchingPlan {
 
     /**
-     * Get the patch metadata.
+     * Get the list of targeted hosts.
      *
-     * @return the patch metadata
+     * @return the hosts
      */
-    Patch getPatch();
-
-    /**
-     * Get the patch content loader.
-     *
-     * @return the patch content loader
-     */
-    PatchContentLoader getContentLoader();
-
-    /**
-     * Execute this plan.
-     *
-     * @throws PatchingException
-     */
-    void execute() throws PatchingException;
-
+    List<String> getHosts();
 }

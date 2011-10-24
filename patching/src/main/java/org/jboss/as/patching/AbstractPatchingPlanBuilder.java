@@ -22,6 +22,10 @@
 
 package org.jboss.as.patching;
 
+import org.jboss.as.patching.domain.DomainPatchingPlan;
+import org.jboss.as.patching.domain.DomainPatchingPlanBuilder;
+import org.jboss.as.patching.domain.HostPatchingPlanBuilder;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -29,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Emanuel Muckenhuber
  */
-class AbstractPatchingPlanBuilder implements PatchingPlanBuilder {
+class AbstractPatchingPlanBuilder implements DomainPatchingPlanBuilder {
 
     private final BasicPatchingPlan plan;
 
@@ -45,21 +49,21 @@ class AbstractPatchingPlanBuilder implements PatchingPlanBuilder {
     }
 
     @Override
-    public PatchingPlan build() {
+    public DomainPatchingPlan build() {
         if(plan.hosts.isEmpty()) {
             throw new IllegalStateException("empty plan");
         }
         return plan;
     }
 
-    static class BasicPatchingPlan implements PatchingPlan {
+    static class BasicPatchingPlan implements DomainPatchingPlan {
 
         private final Patch patch;
-        private final PatchingClientImpl client;
+        private final DomainPatchingClientImpl client;
         private final PatchContentLoader loader;
         private final List<HostEntry> hosts = new ArrayList<HostEntry>();
 
-        protected BasicPatchingPlan(final Patch patch, final PatchContentLoader loader, PatchingClientImpl client) {
+        protected BasicPatchingPlan(final Patch patch, final PatchContentLoader loader, DomainPatchingClientImpl client) {
             this.patch = patch;
             this.client = client;
             this.loader = loader;
@@ -121,7 +125,7 @@ class AbstractPatchingPlanBuilder implements PatchingPlanBuilder {
 
     static class InitialPlanBuilder extends AbstractPatchingPlanBuilder {
 
-        InitialPlanBuilder(final Patch patch, final PatchContentLoader loader, PatchingClientImpl client) {
+        InitialPlanBuilder(final Patch patch, final PatchContentLoader loader, DomainPatchingClientImpl client) {
             super(new BasicPatchingPlan(patch, loader, client));
         }
 

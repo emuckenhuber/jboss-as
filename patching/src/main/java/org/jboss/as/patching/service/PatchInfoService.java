@@ -42,7 +42,6 @@ public final class PatchInfoService implements Service<PatchInfo> {
     private final File jbossHome;
     private PatchInfo patchInfo;
 
-
     public PatchInfoService(final String version, final File jbossHome) {
         this.version = version;
         this.jbossHome = jbossHome;
