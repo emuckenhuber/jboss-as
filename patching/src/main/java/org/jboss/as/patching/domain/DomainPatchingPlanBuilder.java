@@ -25,6 +25,8 @@ package org.jboss.as.patching.domain;
 import org.jboss.as.patching.PatchingPlanBuilder;
 
 /**
+ * A builder for a {@code DomainPatchingPlan}.
+ *
  * @author Emanuel Muckenhuber
  */
 public interface DomainPatchingPlanBuilder extends PatchingPlanBuilder {

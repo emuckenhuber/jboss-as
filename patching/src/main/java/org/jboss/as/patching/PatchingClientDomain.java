@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Emanuel Muckenhuber
  */
-class DomainPatchingClientImpl implements DomainPatchingClient {
+class PatchingClientDomain implements DomainPatchingClient {
 
     private static final ModelNode READ_RESOURCE = new ModelNode();
 
@@ -60,7 +60,7 @@ class DomainPatchingClientImpl implements DomainPatchingClient {
     }
 
     private final ModelControllerClient client;
-    public DomainPatchingClientImpl(ModelControllerClient client) {
+    public PatchingClientDomain(ModelControllerClient client) {
         this.client = client;
     }
 
@@ -87,7 +87,7 @@ class DomainPatchingClientImpl implements DomainPatchingClient {
 //        final ModelNode result = executeForResult(client, operation);
 
         Task master = null; // actually master or local
-        List<Task> others = new ArrayList<Task>();
+        List<Task> remoteHosts = new ArrayList<Task>();
 
         for(final String host : plan.getHosts()) {
 
@@ -100,24 +100,22 @@ class DomainPatchingClientImpl implements DomainPatchingClient {
             if(! hostModel.isDefined()) {
                 throw new PatchingException("no such host " + host);
             }
-            System.out.println(hostModel);
-
             boolean mdc = hostModel.get(MASTER).asBoolean(false);
             if(mdc) {
                 master = new ReconnectTask(host, plan.getPatch(), plan.getContentLoader());
             } else {
-                others.add(new BlockingTask(host, plan.getPatch(), plan.getContentLoader()));
+                remoteHosts.add(new BlockingTask(host, plan.getPatch(), plan.getContentLoader()));
             }
         }
         try {
 
             if(master != null) {
                 master.execute();
+                // Wait for HCs to reconnect...
+                TimeUnit.SECONDS.sleep(5);
             }
-            // Wait for HCs to reconnect...
-            TimeUnit.SECONDS.sleep(15);
 
-            for(final Task task : others) {
+            for(final Task task : remoteHosts) {
                 task.execute();
             }
         } catch (PatchingException e) {
@@ -169,6 +167,7 @@ class DomainPatchingClientImpl implements DomainPatchingClient {
             for(int i = 0; i < 10; i++) {
                 try {
                     executeForResult(client, READ_RESOURCE);
+                    break;
                 } catch (final Exception e) {
                     System.out.println("failed to contact server. waiting...");
                     TimeUnit.SECONDS.sleep(1);
@@ -211,25 +210,15 @@ class DomainPatchingClientImpl implements DomainPatchingClient {
     }
 
     static void checkPatchInfo(final ModelControllerClient client, final String host, final Patch patch) throws PatchingException {
-        final String patchId = patch.getPatchId();
+
         final ModelNode patchInfo = new ModelNode();
         patchInfo.get(OP).set("patch-info");
         patchInfo.get(OP_ADDR).add("host", host);
 
         final ModelNode result = executeForResult(client, patchInfo);
+        System.out.println("new patch info for host: " + host);
         System.out.println(result);
-
-        if(patch.getPatchType() == Patch.PatchType.CUMULATIVE) {
-            final String cp = result.get("cumulative").asString();
-            if(! patchId.equals(cp)) {
-                throw new PatchingException("expected patch '%s', but was '%s'", patchId, cp);
-            }
-        }  else {
-            final List<ModelNode> patches = result.get("patches").asList();
-            if(! patches.contains(new ModelNode().set(patchId))) {
-                throw new PatchingException("expected patches to contain '%s', but was '%s'", patchId, patches);
-            }
-        }
+        PatchClientUtils.validatePatchInfo(result, patch);
     }
 
     static ModelNode executeForResult(final ModelControllerClient client, final ModelNode operation) throws PatchingException {

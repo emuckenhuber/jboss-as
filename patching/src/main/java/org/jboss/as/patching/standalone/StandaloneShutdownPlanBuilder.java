@@ -22,32 +22,20 @@
 
 package org.jboss.as.patching.standalone;
 
-import org.jboss.as.patching.PatchingPlan;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Emanuel Muckenhuber
  */
-public interface StandalonePatchingPlan extends PatchingPlan {
+public interface StandaloneShutdownPlanBuilder extends StandalonePatchingPlanBuilder {
 
     /**
-     * Shutdown after applying the patch.
+     * Specify a graceful shutdown timeout.
      *
-     * @return true if the the process should be shutdown, false otherwise
+     * @param timeout the timeout
+     * @param timeUnit the time unit
+     * @return the current plan builder
      */
-    boolean isShutdown();
-
-    /**
-     * Get the exit code.
-     *
-     * @return the exit code
-     */
-    int getExitCode();
-
-    /**
-     * Get the configured graceful shutdown wait period.
-     *
-     * @return the graceful shutdown wait period
-     */
-    long getGracefulShutdownPeriod();
+    StandalonePatchingPlanBuilder withGracefulTimeout(int timeout, TimeUnit timeUnit);
 
 }

@@ -27,6 +27,8 @@ import org.jboss.as.patching.PatchingPlan;
 import java.util.List;
 
 /**
+ * The domain patching (rollout) plan.
+ *
  * @author Emanuel Muckenhuber
  */
 public interface DomainPatchingPlan extends PatchingPlan {

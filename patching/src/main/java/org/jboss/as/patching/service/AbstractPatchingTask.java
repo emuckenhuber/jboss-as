@@ -36,6 +36,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -94,7 +95,7 @@ public abstract class AbstractPatchingTask implements PatchingTask {
             patches.add(0, patchId);
             newInfo = new PatchInfoImpl("undefined", info.getCumulativeID(), patches, info.getEnvironment());
         } else {
-            newInfo = new PatchInfoImpl("undefined", patchId, info.getPatchIDs(), info.getEnvironment());
+            newInfo = new PatchInfoImpl("undefined", patchId, Collections.<String>emptyList(), info.getEnvironment());
         }
         return newInfo;
     }

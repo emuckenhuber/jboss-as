@@ -43,20 +43,20 @@ class TestUtils {
 
     private TestUtils() {}
 
-    static ModelNode executeForResult(final ModelControllerClient client, final ModelNode operation) throws PatchingException {
+    static ModelNode executeForResult(final ModelControllerClient client, final ModelNode operation) throws IOException {
         return executeForResult(client, OperationBuilder.create(operation).build());
     }
 
-    static ModelNode executeForResult(final ModelControllerClient client, final Operation operation) throws PatchingException {
+    static ModelNode executeForResult(final ModelControllerClient client, final Operation operation) throws IOException {
         try {
             final ModelNode result = client.execute(operation);
             if(SUCCESS.equals(result.get(OUTCOME).asString())) {
                 return result.get(RESULT);
             } else {
-                throw new PatchingException("operation failed " + result);
+                throw new RuntimeException("operation failed " + result);
             }
         } catch(IOException ioe) {
-            throw new PatchingException(ioe);
+            throw new RuntimeException(ioe);
         }
     }
 

@@ -26,13 +26,13 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IN_SERIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import org.jboss.as.patching.standalone.StandalonePatchingClient;
 import org.jboss.as.patching.standalone.StandalonePatchingPlan;
 import org.jboss.as.patching.standalone.StandalonePatchingPlanBuilder;
+import org.jboss.as.patching.standalone.StandaloneShutdownPlanBuilder;
 import org.jboss.dmr.ModelNode;
 
 import java.io.IOException;
@@ -42,10 +42,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Emanuel Muckenhuber
  */
-class StandalonePatchingClientImpl implements StandalonePatchingClient {
+class PatchingClientStandalone implements StandalonePatchingClient {
 
     private final ModelControllerClient client;
-    StandalonePatchingClientImpl(ModelControllerClient client) {
+    PatchingClientStandalone(ModelControllerClient client) {
         this.client = client;
     }
 
@@ -81,17 +81,45 @@ class StandalonePatchingClientImpl implements StandalonePatchingClient {
         } finally {
 
         }
+        if(plan.isShutdown()) {
+            // Shutdown standalone if requested
+            final ModelNode shutdown = new ModelNode();
+            shutdown.get(ModelDescriptionConstants.OP).set("shutdown");
+            shutdown.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
+            shutdown.get("exit-code").set(plan.getExitCode());
+            // TODO graceful shutdown timeout
+            try {
+                executeForResult(client, shutdown);
+            } catch(Exception ignore) {
+                //
+            }
+        }
+
     }
 
-    protected class SPCB implements StandalonePatchingPlanBuilder {
+    protected class SPCB implements StandaloneShutdownPlanBuilder {
 
         private final Patch patch;
         private final PatchContentLoader loader;
+        private boolean shutdown = false;
+        private int exitCode = 0;
         private long gracefulTimeout;
 
         SPCB(Patch patch, PatchContentLoader loader) {
             this.patch = patch;
             this.loader = loader;
+        }
+
+        @Override
+        public StandaloneShutdownPlanBuilder shutdownAfterCompletion() {
+            return shutdownAfterCompletion(0);
+        }
+
+        @Override
+        public StandaloneShutdownPlanBuilder shutdownAfterCompletion(int exitCode) {
+            this.exitCode = exitCode;
+            this.shutdown = true;
+            return this;
         }
 
         @Override
@@ -119,8 +147,18 @@ class StandalonePatchingClientImpl implements StandalonePatchingClient {
                 }
 
                 @Override
+                public boolean isShutdown() {
+                    return shutdown;
+                }
+
+                @Override
+                public int getExitCode() {
+                    return exitCode;
+                }
+
+                @Override
                 public void execute() throws PatchingException {
-                    StandalonePatchingClientImpl.this.execute(this);
+                    PatchingClientStandalone.this.execute(this);
                 }
             };
         }

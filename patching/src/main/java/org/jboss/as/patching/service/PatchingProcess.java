@@ -148,7 +148,7 @@ public class PatchingProcess {
             byteInput = Marshalling.createByteInput(initialInput);
 
             unmarshaller.start(byteInput);
-            PatchInformation information = unmarshaller.readObject(PatchInformation.class);
+            final PatchInformation information = unmarshaller.readObject(PatchInformation.class);
             unmarshaller.finish();
 
             final ProtocolClient.Configuration configuration = new ProtocolClient.Configuration();
@@ -173,10 +173,20 @@ public class PatchingProcess {
 
             final ModelControllerClient controller = ModelControllerClient.Factory.create(information.getMgmtAddress().getHostName(), information.getMgmtAddress().getPort());
 
+            // Validate operation
             final ModelNode operation = new ModelNode();
             operation.get(OP).set(READ_RESOURCE_OPERATION);
             operation.get(OP_ADDR).setEmptyList();
-            executeForResult(controller, OperationBuilder.create(operation).build());
+
+            for(int i = 0; i < 5; i++) {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+                try {
+                    executeForResult(controller, OperationBuilder.create(operation).build());
+                    break;
+                } catch (Exception ignore) {
+                    //
+                }
+            }
 
         } catch(Exception e) {
             e.printStackTrace(initialError);
