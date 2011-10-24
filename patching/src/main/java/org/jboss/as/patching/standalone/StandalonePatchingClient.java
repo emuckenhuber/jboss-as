@@ -20,34 +20,24 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.standalone;
+
+import org.jboss.as.patching.Patch;
+import org.jboss.as.patching.PatchContentLoader;
+import org.jboss.as.patching.PatchingClient;
 
 /**
- * The final patching plan.
- *
  * @author Emanuel Muckenhuber
  */
-public interface PatchingPlan {
+public interface StandalonePatchingClient extends PatchingClient<StandalonePatchingPlanBuilder> {
 
     /**
-     * Get the patch metadata.
+     * Create a new patching plan builder.
      *
-     * @return the patch metadata
+     * @param patch the patch meta data
+     * @param contentLoader the content loader
+     * @return the plan builder
      */
-    Patch getPatch();
-
-    /**
-     * Get the patch content loader.
-     *
-     * @return the patch content loader
-     */
-    PatchContentLoader getContentLoader();
-
-    /**
-     * Execute this plan.
-     *
-     * @throws PatchingException
-     */
-    void execute() throws PatchingException;
+    StandalonePatchingPlanBuilder createBuilder(Patch patch, PatchContentLoader contentLoader);
 
 }

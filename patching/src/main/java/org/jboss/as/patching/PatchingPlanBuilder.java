@@ -30,14 +30,6 @@ package org.jboss.as.patching;
 public interface PatchingPlanBuilder {
 
     /**
-     * Add a host target to the plan.
-     *
-     * @param hostName the host name
-     * @return the plan builder
-     */
-    HostPatchingPlanBuilder addHost(String hostName);
-
-    /**
      * Build the final patching plan.
      *
      * @return the patching plan

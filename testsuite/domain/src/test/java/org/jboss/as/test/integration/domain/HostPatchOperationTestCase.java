@@ -31,6 +31,8 @@ import org.jboss.as.patching.PatchContentLoader;
 import org.jboss.as.patching.PatchImpl;
 import org.jboss.as.patching.PatchingClient;
 import org.jboss.as.patching.PatchingPlanBuilder;
+import org.jboss.as.patching.domain.DomainPatchingClient;
+import org.jboss.as.patching.domain.DomainPatchingPlanBuilder;
 import org.jboss.as.test.example.ExampleExtension;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
@@ -104,9 +106,9 @@ public class HostPatchOperationTestCase {
             patch.get(PatchImpl.APPLIES_TO).add(patchInfo.get("version"));
 
             // Create the patching client
-            final PatchingClient patchingClient = PatchingClient.Factory.create(client);
+            final DomainPatchingClient patchingClient = PatchingClient.Factory.createDomainClient(client);
             final Patch p = patchingClient.create(patch);
-            final PatchingPlanBuilder builder = patchingClient.createBuilder(p, new PatchContentLoader() {
+            final DomainPatchingPlanBuilder builder = patchingClient.createBuilder(p, new PatchContentLoader() {
                 @Override
                 public InputStream openContentStream() throws IOException {
                     return new FileInputStream(temp);

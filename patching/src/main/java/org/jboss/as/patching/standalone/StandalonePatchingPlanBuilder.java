@@ -20,34 +20,32 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.standalone;
+
+import org.jboss.as.patching.PatchingPlan;
+import org.jboss.as.patching.PatchingPlanBuilder;
+
+import java.util.concurrent.TimeUnit;
 
 /**
- * The final patching plan.
- *
  * @author Emanuel Muckenhuber
  */
-public interface PatchingPlan {
+public interface StandalonePatchingPlanBuilder extends PatchingPlanBuilder {
 
     /**
-     * Get the patch metadata.
+     * Specify a graceful shutdown timeout.
      *
-     * @return the patch metadata
+     * @param timeout the timeout
+     * @param timeUnit the time unit
+     * @return the current plan builder
      */
-    Patch getPatch();
+    StandalonePatchingPlanBuilder withGracefulTimeout(int timeout, TimeUnit timeUnit);
 
     /**
-     * Get the patch content loader.
+     * Build the final patching plan.
      *
-     * @return the patch content loader
+     * @return the patching plan
      */
-    PatchContentLoader getContentLoader();
-
-    /**
-     * Execute this plan.
-     *
-     * @throws PatchingException
-     */
-    void execute() throws PatchingException;
+    StandalonePatchingPlan build();
 
 }

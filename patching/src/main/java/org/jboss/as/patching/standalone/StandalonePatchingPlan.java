@@ -20,34 +20,20 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.standalone;
+
+import org.jboss.as.patching.PatchingPlan;
 
 /**
- * The final patching plan.
- *
  * @author Emanuel Muckenhuber
  */
-public interface PatchingPlan {
+public interface StandalonePatchingPlan extends PatchingPlan {
 
     /**
-     * Get the patch metadata.
+     * Get the configured graceful shutdown wait period.
      *
-     * @return the patch metadata
+     * @return the graceful shutdown wait period
      */
-    Patch getPatch();
-
-    /**
-     * Get the patch content loader.
-     *
-     * @return the patch content loader
-     */
-    PatchContentLoader getContentLoader();
-
-    /**
-     * Execute this plan.
-     *
-     * @throws PatchingException
-     */
-    void execute() throws PatchingException;
+    long getGracefulShutdownPeriod();
 
 }

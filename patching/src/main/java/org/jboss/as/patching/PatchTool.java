@@ -31,7 +31,13 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MOD
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import org.jboss.as.patching.domain.DomainPatchingClient;
+import org.jboss.as.patching.domain.DomainPatchingPlanBuilder;
+import org.jboss.as.patching.standalone.StandalonePatchingClient;
+import org.jboss.as.patching.standalone.StandalonePatchingPlan;
+import org.jboss.as.patching.standalone.StandalonePatchingPlanBuilder;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -65,39 +71,46 @@ public final class PatchTool {
     private static final int PORT = Integer.getInteger("port", 9999);
 
     private static final ModelNode PATCH_INFO_OP = new ModelNode();
+    private static final ModelNode LAUNCH_TYPE_OP = new ModelNode();
     private static final ModelNode READ_HOST_NAMES = new ModelNode();
 
     static {
-        //
+        // the patch info
         PATCH_INFO_OP.get(ModelDescriptionConstants.OP).set("patch-info");
         PATCH_INFO_OP.get(ModelDescriptionConstants.OP_ADDR).add("host", "master");
         PATCH_INFO_OP.protect();
 
+        //
+        LAUNCH_TYPE_OP.get(ModelDescriptionConstants.OP).set(ModelDescriptionConstants.READ_ATTRIBUTE_OPERATION);
+        LAUNCH_TYPE_OP.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
+        LAUNCH_TYPE_OP.get(ModelDescriptionConstants.NAME).set("launch-type");
+        LAUNCH_TYPE_OP.protect();
+
+        // Host names
         READ_HOST_NAMES.get(ModelDescriptionConstants.OP).set(ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION);
         READ_HOST_NAMES.get(ModelDescriptionConstants.OP_ADDR).setEmptyList();
         READ_HOST_NAMES.get(ModelDescriptionConstants.CHILD_TYPE).set(ModelDescriptionConstants.HOST);
         READ_HOST_NAMES.protect();
     }
 
+    private final BufferedReader stdin;
     private static final PrintStream stdout = System.out;
-    private final Reader stdin;
     private final ModelControllerClient client;
 
     private static String swingLAF;
 
-    public PatchTool(final ModelControllerClient client) {
-        this.stdin = new InputStreamReader(System.in);
+    public PatchTool(final ModelControllerClient client, final BufferedReader in) {
+        this.stdin = in;
         this.client = client;
     }
 
     public static void main(final String[] args) throws Exception {
 
-        final ModelControllerClient client = ModelControllerClient.Factory.create(HOST, PORT);
-        final PatchingClient patchingClient = PatchingClient.Factory.create(client);
-        try {
+        final InputStreamReader converter = new InputStreamReader(System.in);
+        final BufferedReader in = new BufferedReader(converter);
 
-            final InputStreamReader converter = new InputStreamReader(System.in);
-            final BufferedReader in = new BufferedReader(converter);
+        final ModelControllerClient client = ModelControllerClient.Factory.create(HOST, PORT);
+        try {
 
             System.out.println("[patch-id]");
             final String id = in.readLine();
@@ -122,27 +135,53 @@ public final class PatchTool {
 
             stdout.println(patchModel);
 
-            final List<String> hostNames = chooseHosts(readHostNames(client), in);
-            if(hostNames == null || hostNames.isEmpty()) {
-                System.out.println("no hosts selected.");
-                System.exit(1);
+            final PatchTool tool = new PatchTool(client, in);
+            if ("STANDALONE".equals(executeForResult(client, LAUNCH_TYPE_OP).asString())) {
+                final StandalonePatchingClient patchingClient = PatchingClient.Factory.createStandaloneClient(client);
+                final Patch patch = patchingClient.create(patchModel);
+                // Create the plan
+                final StandalonePatchingPlanBuilder builder = patchingClient.createBuilder(patch, PatchContentLoader.FilePatchContentLoader.create(content));
+                final StandalonePatchingPlan plan = builder.build();
+                // Execute the plan
+                plan.execute();
+            } else {
+                final DomainPatchingClient patchingClient = PatchingClient.Factory.createDomainClient(client);
+                final Patch patch = patchingClient.create(patchModel);
+                tool.runDomain(patchingClient, patch, PatchContentLoader.FilePatchContentLoader.create(content));
             }
-            // Create the patch metadata and plan builder
-            final Patch patch = patchingClient.create(patchModel);
-            final PatchingPlanBuilder builder = patchingClient.createBuilder(patch, PatchContentLoader.FilePatchContentLoader.create(content));
-            // Add all hosts
-            for(final String host : hostNames) {
-                builder.addHost(host);
-            }
-            // Create the plan
-            final PatchingPlan plan = builder.build();
-            // execute the plan
-            plan.execute();
+
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             client.close();
         }
+    }
+
+    /**
+     * Patch the domain
+     *
+     * @param patchingClient the domain patching client
+     * @param patch the patch
+     * @param loader the patch content loader
+     * @throws Exception
+     */
+    private void runDomain(final DomainPatchingClient patchingClient, final Patch patch, final PatchContentLoader loader) throws Exception {
+
+        final List<String> hostNames = chooseHosts(readHostNames(client), stdin);
+        if(hostNames == null || hostNames.isEmpty()) {
+            System.out.println("no hosts selected.");
+            System.exit(1);
+        }
+        // Create the domain patching plan builder
+        final DomainPatchingPlanBuilder builder = patchingClient.createBuilder(patch, loader);
+        // Add all hosts
+        for(final String host : hostNames) {
+            builder.addHost(host);
+        }
+        // Create the plan
+        final PatchingPlan plan = builder.build();
+        // execute the plan
+        plan.execute();
     }
 
     /**
@@ -169,7 +208,6 @@ public final class PatchTool {
         }
     }
 
-
     private static File chooseFile(BufferedReader in) throws IOException {
         initializeSwing();
         try {
@@ -182,9 +220,14 @@ public final class PatchTool {
             }
         } catch (Exception e) {
             System.err.println("failed to setup swing..");
-            System.out.println("[file system path]");
-            final String file = in.readLine();
-            return new File(file);
+            for(;;) {
+                System.out.println("[please enter file system path]");
+                final String file = in.readLine();
+                final File f = new File(file);
+                if(f.isFile()) {
+                    return f;
+                }
+            }
         }
         return null;
     }
@@ -342,6 +385,4 @@ public final class PatchTool {
         }
     }
 
-
 }
-
