@@ -3,6 +3,7 @@
 DIRNAME=`dirname "$0"`
 PROGNAME=`basename "$0"`
 GREP="grep"
+AWK="awk"
 
 # Use the maximum available, or set MAX_FD != -1 to use that
 MAX_FD="maximum"
@@ -103,6 +104,24 @@ if [ "x$JBOSS_MODULEPATH" = "x" ]; then
     JBOSS_MODULEPATH="$JBOSS_HOME/modules"
 fi
 
+# consolidate the server and command line opts
+SERVER_OPTS="$JAVA_OPTS $@"
+# determine the base dir
+BASE_DIR=`echo $SERVER_OPTS | $AWK -F-Djboss.server.base.dir= ' { print $2 } '`
+if [ "x$BASE_DIR" = "x" ]; then
+   BASE_DIR=$JBOSS_HOME/standalone
+fi
+# determine the log dir
+LOG_DIR=`echo $SERVER_OPTS | $AWK -F-Djboss.server.log.dir= ' { print $2 } '`
+if [ "x$LOG_DIR" = "x" ]; then
+   LOG_DIR=$BASE_DIR/log
+fi
+# determine the configuration dir
+CONFIG_DIR=`echo $SERVER_OPTS | $AWK -F-Djboss.server.config.dir= ' { print $2 } '`
+if [ "x$CONFIG_DIR" = "x" ]; then
+   CONFIG_DIR=$BASE_DIR/configuration
+fi
+
 # For Cygwin, switch paths to Windows format before running java
 if $cygwin; then
     JBOSS_HOME=`cygpath --path --windows "$JBOSS_HOME"`
@@ -130,8 +149,8 @@ while true; do
    if [ "x$LAUNCH_JBOSS_IN_BACKGROUND" = "x" ]; then
       # Execute the JVM in the foreground
       eval \"$JAVA\" $JAVA_OPTS \
-         \"-Dorg.jboss.boot.log.file=$JBOSS_HOME/standalone/log/boot.log\" \
-         \"-Dlogging.configuration=file:$JBOSS_HOME/standalone/configuration/logging.properties\" \
+         \"-Dorg.jboss.boot.log.file=$LOG_DIR/boot.log\" \
+         \"-Dlogging.configuration=file:$CONFIG_DIR/logging.properties\" \
          -jar \"$JBOSS_HOME/jboss-modules.jar\" \
          -mp \"${JBOSS_MODULEPATH}\" \
          -jaxpmodule "javax.xml.jaxp-provider" \
@@ -142,8 +161,8 @@ while true; do
    else
       # Execute the JVM in the background
       eval \"$JAVA\" $JAVA_OPTS \
-         \"-Dorg.jboss.boot.log.file=$JBOSS_HOME/standalone/log/boot.log\" \
-         \"-Dlogging.configuration=file:$JBOSS_HOME/standalone/configuration/logging.properties\" \
+         \"-Dorg.jboss.boot.log.file=$LOG_DIR/boot.log\" \
+         \"-Dlogging.configuration=file:$CONFIG_DIR/logging.properties\" \
          -jar \"$JBOSS_HOME/jboss-modules.jar\" \
          -mp \"${JBOSS_MODULEPATH}\" \
          -jaxpmodule "javax.xml.jaxp-provider" \
