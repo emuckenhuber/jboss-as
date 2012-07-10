@@ -64,9 +64,6 @@ public class ServerAddHandler extends AbstractAddStepHandler {
     }
 
     private void createCoreModel(ModelNode root) {
-        root.get(PATH);
-        root.get(SYSTEM_PROPERTY);
-        root.get(INTERFACE);
-        root.get(JVM);
+        //
     }
 }

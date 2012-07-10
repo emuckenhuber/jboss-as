@@ -32,6 +32,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONTENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT_OVERLAY;
@@ -360,7 +361,8 @@ public class ServerOperationResolver {
         Map<Set<ServerIdentity>, ModelNode> result = null;
         if (address.size() > 1) {
             String type = address.getElement(1).getKey();
-            if (JVM.equals(type)) {
+            if (CONFIGURATION.equals(type)) {
+                // TODO perhaps check getValue().equals(JVM)
                 // TODO need to reflect that affected servers are out of date. Perhaps an op for this?
                 result = Collections.emptyMap();
             } else if (DEPLOYMENT.equals(type)) {

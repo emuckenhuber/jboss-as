@@ -21,6 +21,7 @@
 */
 package org.jboss.as.core.model.test.jvm;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
@@ -34,6 +35,7 @@ import org.jboss.as.core.model.test.KernelServices;
 import org.jboss.as.core.model.test.ModelInitializer;
 import org.jboss.as.core.model.test.ModelWriteSanitizer;
 import org.jboss.as.core.model.test.TestModelType;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 import org.jboss.as.model.test.ModelTestUtils;
 import org.jboss.dmr.ModelNode;
 import org.junit.Test;
@@ -61,9 +63,9 @@ public class DomainModelJvmModelTestCase extends GlobalJvmModelTestCase {
         ModelTestUtils.compareXml(ModelTestUtils.readResource(this.getClass(), "domain-full.xml"), xml);
 
         ModelNode model = kernelServices.readWholeModel();
-        ModelNode jvmParent = model.get(SERVER_GROUP, "test", JVM);
+        ModelNode jvmParent = model.get(SERVER_GROUP, "test", CONFIGURATION);
         Assert.assertEquals(1, jvmParent.keys().size());
-        checkFullJvm(jvmParent.get("full"));
+        checkFullJvm(jvmParent.get(JVM));
     }
 
     @Test
@@ -77,9 +79,9 @@ public class DomainModelJvmModelTestCase extends GlobalJvmModelTestCase {
         ModelTestUtils.compareXml(ModelTestUtils.readResource(this.getClass(), "domain-empty.xml"), xml);
 
         ModelNode model = kernelServices.readWholeModel();
-        ModelNode jvmParent = model.get(SERVER_GROUP, "test", JVM);
+        ModelNode jvmParent = model.get(SERVER_GROUP, "test", CONFIGURATION);
         Assert.assertEquals(1, jvmParent.keys().size());
-        checkEmptyJvm(jvmParent.get("empty"));
+        checkEmptyJvm(jvmParent.get(JVM));
     }
 
     @Override
@@ -95,7 +97,7 @@ public class DomainModelJvmModelTestCase extends GlobalJvmModelTestCase {
 
     @Override
     protected ModelNode getPathAddress(String jvmName, String... subaddress) {
-        return PathAddress.pathAddress(PARENT, PathElement.pathElement(JVM, "test")).toModelNode();
+        return PathAddress.pathAddress(PARENT, JVM_SINGLE).toModelNode();
     }
 
     private static final ModelInitializer XML_MODEL_INITIALIZER = new ModelInitializer() {
@@ -114,4 +116,11 @@ public class DomainModelJvmModelTestCase extends GlobalJvmModelTestCase {
             return model;
         }
     };
+
+    @Override
+    protected ModelNode createOperation(String name) {
+        final ModelNode operation = super.createOperation(name);
+        operation.get(JvmAttributes.JVM_REF).set("test");
+        return operation;
+    }
 }

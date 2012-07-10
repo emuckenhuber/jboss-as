@@ -22,6 +22,9 @@
 
 package org.jboss.as.domain.controller.operations;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_SUBSYSTEM_ENDPOINT;
 import static org.jboss.as.domain.controller.DomainControllerMessages.MESSAGES;
 import static org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition.PROFILE;
 import static org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition.SOCKET_BINDING_GROUP;
@@ -36,6 +39,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -73,6 +77,13 @@ public class ServerGroupAddHandler implements OperationStepHandler {
             } catch (NoSuchElementException e) {
                 throw new OperationFailedException(new ModelNode().set(MESSAGES.unknown(SOCKET_BINDING_GROUP.getName(), socketBindingGroup)));
             }
+        }
+
+        if (operation.hasDefined(JVM)) {
+            final String jvmName = operation.get(JVM).asString();
+            final Resource jvm = context.createResource(PathAddress.pathAddress(PathElement.pathElement(CONFIGURATION, JVM)));
+            final ModelNode jvmModel = jvm.getModel();
+            jvmModel.get(JvmAttributes.JVM_REF).set(jvmName);
         }
 
         context.stepCompleted();

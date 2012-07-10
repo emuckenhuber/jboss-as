@@ -36,6 +36,8 @@ import org.jboss.as.controller.transform.ResourceTransformationContext;
 import org.jboss.as.controller.transform.ResourceTransformer;
 import org.jboss.as.controller.transform.TransformationTarget;
 import org.jboss.as.controller.transform.TransformerRegistry;
+import org.jboss.as.controller.transform.TransformersSubRegistration;
+import org.jboss.as.host.controller.model.jvm.JVMTransformer;
 
 /**
  * Global transformation rules for the domain, host and server-config model.
@@ -50,6 +52,9 @@ public class DomainTransformers {
     private static final String JSF_SUBSYSTEM = "jsf";
     private static final PathElement JSF_EXTENSION = PathElement.pathElement(ModelDescriptionConstants.EXTENSION, "org.jboss.as.jsf");
 
+    private static final PathElement SERVER_GROUP = PathElement.pathElement(ModelDescriptionConstants.SERVER_GROUP);
+    private static final PathElement SERVER_CONFIGS = PathElement.pathElement(ModelDescriptionConstants.SERVER_CONFIG);
+
     private static final ModelVersion VERSION_1_3 = ModelVersion.create(1, 3, 0);
 
     /**
@@ -59,8 +64,36 @@ public class DomainTransformers {
      */
     public static void initializeDomainRegistry(final TransformerRegistry registry) {
 
+        final TransformersSubRegistration version13 = registry.getDomainRegistration(VERSION_1_3);
+
+        //
+        // Domain
+        //
+
         // Discard all operations to the newly introduced jsf extension
-        registry.getDomainRegistration(VERSION_1_3).registerSubResource(JSF_EXTENSION, IGNORED_EXTENSIONS);
+        version13.registerSubResource(JSF_EXTENSION, IGNORED_EXTENSIONS);
+
+        // server-groups
+        final TransformersSubRegistration serverGroups = version13.registerSubResource(SERVER_GROUP);
+
+        // [(server-group=*),(configuration=jvm)]
+        JVMTransformer.registerSingleTransformers(serverGroups);
+
+        //
+        // Host
+        //
+
+        final TransformersSubRegistration hostVersion13 = registry.getHostRegistration(VERSION_1_3);
+
+        // server-config
+        final TransformersSubRegistration serverConfigs = hostVersion13.registerSubResource(SERVER_CONFIGS);
+
+        // [(server-config=*),(configuration=jvm)]
+        JVMTransformer.registerSingleTransformers(serverConfigs);
+
+        //
+        // Subsystems
+        //
 
         // Ignore the jsf subsystem as well
         registry.registerSubsystemTransformers(JSF_SUBSYSTEM, IGNORED_SUBSYSTEMS, ResourceTransformer.DISCARD);

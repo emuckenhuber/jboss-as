@@ -64,6 +64,8 @@ public class JvmAttributes {
     public static final String VALUE = "value";
     public static final String MAX_SIZE = "max-size";
 
+    public static final String JVM_REF = "jvm-ref";
+
 
     public static final SimpleAttributeDefinition AGENT_LIB =
             SimpleAttributeDefinitionBuilder.create(JvmAttributes.JVM_AGENT_LIB, ModelType.STRING, true)
@@ -165,16 +167,34 @@ public class JvmAttributes {
             .setAllowExpression(false)
             .build();
 
-    private static final AttributeDefinition[] GLOBAL_ATTRIBUTES = new AttributeDefinition[] {
+    public static final SimpleAttributeDefinition JVM_REFERENCE = SimpleAttributeDefinitionBuilder.create(JVM_REF, ModelType.STRING, false)
+            .setAllowExpression(false)
+            .build();
+
+    private static final AttributeDefinition[] HOST_ATTRIBUTES = new AttributeDefinition[] {
+        AGENT_LIB, AGENT_PATH, ENV_CLASSPATH_IGNORED, ENVIRONMENT_VARIABLES, JAVA_AGENT, JAVA_HOME,
+        OPTIONS, STACK_SIZE, TYPE, HEAP_SIZE, MAX_HEAP_SIZE, PERMGEN_SIZE, MAX_PERMGEN_SIZE};
+
+    private static final AttributeDefinition[] GROUP_ATTRIBUTES = new AttributeDefinition[] {
+            JVM_REFERENCE,
         AGENT_LIB, AGENT_PATH, ENV_CLASSPATH_IGNORED, ENVIRONMENT_VARIABLES, JAVA_AGENT, JAVA_HOME,
         OPTIONS, STACK_SIZE, TYPE, HEAP_SIZE, MAX_HEAP_SIZE, PERMGEN_SIZE, MAX_PERMGEN_SIZE};
 
     private static final AttributeDefinition[] SERVER_ATTRIBUTES = new AttributeDefinition[] {
+            JVM_REFERENCE,
         AGENT_LIB, AGENT_PATH, ENV_CLASSPATH_IGNORED, ENVIRONMENT_VARIABLES, JAVA_AGENT, JAVA_HOME,
         OPTIONS, STACK_SIZE, TYPE, HEAP_SIZE, MAX_HEAP_SIZE, PERMGEN_SIZE, MAX_PERMGEN_SIZE,
         DEBUG_ENABLED, DEBUG_OPTIONS};
 
-    static AttributeDefinition[] getAttributes(boolean server) {
-        return server ? SERVER_ATTRIBUTES : GLOBAL_ATTRIBUTES;
+    static AttributeDefinition[] getHostAttributes() {
+        return HOST_ATTRIBUTES;
+    }
+
+    static AttributeDefinition[] getServerGroupAttributes() {
+        return GROUP_ATTRIBUTES;
+    }
+
+    static AttributeDefinition[] getServerAttributes() {
+        return SERVER_ATTRIBUTES;
     }
 }

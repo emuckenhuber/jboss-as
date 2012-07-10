@@ -64,6 +64,7 @@ public class ModelDescriptionConstants {
     public static final String CODE = "code";
     public static final String COMPOSITE = "composite";
     public static final String CONCURRENT_GROUPS = "concurrent-groups";
+    public static final String CONFIGURATION = "configuration";
     public static final String CONNECTION = "connection";
     public static final String CONNECTIONS = "connections";
     public static final String CONSOLE_ENABLED = "console-enabled";

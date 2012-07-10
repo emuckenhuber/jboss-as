@@ -25,6 +25,7 @@ package org.jboss.as.host.controller.parsing;
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static org.jboss.as.controller.ControllerMessages.MESSAGES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONTENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT_OVERLAY;
@@ -100,6 +101,7 @@ import org.jboss.modules.ModuleLoader;
 import org.jboss.staxmapper.XMLElementWriter;
 import org.jboss.staxmapper.XMLExtendedStreamReader;
 import org.jboss.staxmapper.XMLExtendedStreamWriter;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 
 /**
  * A mapper between an AS server's configuration model and XML representations, particularly  {@code domain.xml}.
@@ -688,7 +690,7 @@ public class DomainXml extends CommonXml {
                 final Element element = Element.forName(reader.getLocalName());
                 switch (element) {
                     case JVM: {
-                        JvmXml.parseJvm(reader, groupAddress, expectedNs, list, new HashSet<String>());
+                        JvmXml.parseServerGroupJvm(reader, groupAddress, expectedNs, list, new HashSet<String>());
                         break;
                     }
                     case SOCKET_BINDING_GROUP: {
@@ -963,10 +965,11 @@ public class DomainXml extends CommonXml {
         writer.writeAttribute(Attribute.PROFILE.getLocalName(), group.get(PROFILE).asString());
 
         // JVM
-        if (group.hasDefined(JVM)) {
-            for (final Property jvm : group.get(JVM).asPropertyList()) {
-                JvmXml.writeJVMElement(writer, jvm.getName(), jvm.getValue());
-                break; // TODO just write the first !?
+        if(group.hasDefined(CONFIGURATION)) {
+            if(group.get(CONFIGURATION).hasDefined(JVM)) {
+                final ModelNode jvm = group.get(CONFIGURATION, JVM);
+                final String name = jvm.require(JvmAttributes.JVM_REF).asString();
+                JvmXml.writeJVMElement(writer, name, jvm);
             }
         }
 

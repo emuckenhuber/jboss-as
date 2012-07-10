@@ -33,26 +33,32 @@ import org.jboss.as.host.controller.descriptions.HostEnvironmentResourceDescript
 /**
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
+ * @author Emanuel Muckenhuber
  */
 public class JvmResourceDefinition extends SimpleResourceDefinition {
 
-    public static final JvmResourceDefinition GLOBAL = new JvmResourceDefinition(false);
+    private static PathElement JVM_WILDCARD = PathElement.pathElement(ModelDescriptionConstants.JVM);
+    private static PathElement JVM_SINGLE = PathElement.pathElement(ModelDescriptionConstants.CONFIGURATION, ModelDescriptionConstants.JVM);
 
-    public static final JvmResourceDefinition SERVER = new JvmResourceDefinition(true);
+    public static final JvmResourceDefinition GROUP = new JvmResourceDefinition(JVM_SINGLE, JvmAttributes.getServerGroupAttributes(), false);
+    public static final JvmResourceDefinition HOST = new JvmResourceDefinition(JVM_WILDCARD, JvmAttributes.getHostAttributes(), false);
+    public static final JvmResourceDefinition SERVER = new JvmResourceDefinition(JVM_SINGLE, JvmAttributes.getServerAttributes(), true);
 
+    private final AttributeDefinition[] attributes;
     private final boolean server;
 
-    protected JvmResourceDefinition(boolean server) {
-        super(PathElement.pathElement(ModelDescriptionConstants.JVM),
+    protected JvmResourceDefinition(final PathElement path, final AttributeDefinition[] attributes, boolean server) {
+        super(path,
                 new StandardResourceDescriptionResolver("jvm", HostEnvironmentResourceDescription.class.getPackage().getName() + ".LocalDescriptions", HostEnvironmentResourceDescription.class.getClassLoader(), true, false),
-                new JVMAddHandler(JvmAttributes.getAttributes(server)),
+                new JVMAddHandler(attributes),
                 JVMRemoveHandler.INSTANCE);
+        this.attributes = attributes;
         this.server = server;
     }
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        for (AttributeDefinition attr : JvmAttributes.getAttributes(server)) {
+        for (AttributeDefinition attr : attributes) {
             resourceRegistration.registerReadWriteAttribute(attr, null, new WriteAttributeHandlers.AttributeDefinitionValidatingHandler(attr));
         }
     }
@@ -69,4 +75,5 @@ public class JvmResourceDefinition extends SimpleResourceDefinition {
         //resourceRegistration.registerOperationHandler(JVMEnvironmentVariableAddHandler.OPERATION_NAME, JVMEnvironmentVariableAddHandler.INSTANCE, JVMEnvironmentVariableAddHandler.INSTANCE, false);
         //resourceRegistration.registerOperationHandler(JVMEnvironmentVariableRemoveHandler.OPERATION_NAME, JVMEnvironmentVariableRemoveHandler.INSTANCE, JVMEnvironmentVariableRemoveHandler.INSTANCE, false);
     }
+
 }

@@ -442,6 +442,7 @@ abstract class AbstractOperationContext implements OperationContext {
                 }
 
             } catch (Throwable t) {
+                t.printStackTrace();
                 // Special handling for OperationClientException marker
                 // interface
                 if (!(t instanceof OperationClientException)) {

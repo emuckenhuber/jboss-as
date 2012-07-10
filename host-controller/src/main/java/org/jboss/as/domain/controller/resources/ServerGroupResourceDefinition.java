@@ -40,7 +40,7 @@ import org.jboss.as.domain.controller.operations.DomainServerLifecycleHandlers;
 import org.jboss.as.domain.controller.operations.ServerGroupAddHandler;
 import org.jboss.as.domain.controller.operations.ServerGroupRemoveHandler;
 import org.jboss.as.domain.controller.operations.deployment.ServerGroupDeploymentReplaceHandler;
-import org.jboss.as.host.controller.model.jvm.JvmResourceDefinition;
+import org.jboss.as.host.controller.model.jvm.JVMHandlers;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.repository.HostFileRepository;
 import org.jboss.as.server.controller.resources.DeploymentAttributes;
@@ -108,7 +108,7 @@ public class ServerGroupResourceDefinition extends SimpleResourceDefinition {
     @Override
     public void registerChildren(ManagementResourceRegistration resourceRegistration) {
         DomainServerLifecycleHandlers.registerServerGroupHandlers(resourceRegistration);
-        resourceRegistration.registerSubModel(JvmResourceDefinition.GLOBAL);
+        JVMHandlers.registerServerGroupVM(resourceRegistration);
         resourceRegistration.registerSubModel(DomainDeploymentResourceDescription.createForServerGroup(contentRepo, fileRepository));
         resourceRegistration.registerSubModel(SystemPropertyResourceDefinition.createForDomainOrHost(Location.SERVER_GROUP));
         resourceRegistration.registerSubModel(new DeploymentOverlayDefinition(DeploymentOverlayPriority.SERVER_GROUP, null, null));

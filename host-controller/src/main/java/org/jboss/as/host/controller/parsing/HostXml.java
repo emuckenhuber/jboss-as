@@ -55,6 +55,7 @@ import org.jboss.staxmapper.XMLExtendedStreamWriter;
 import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static org.jboss.as.controller.ControllerMessages.MESSAGES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DIRECTORY_GROUPING;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DOMAIN_CONTROLLER;
@@ -93,6 +94,8 @@ import static org.jboss.as.controller.parsing.ParseUtils.requireNoAttributes;
 import static org.jboss.as.controller.parsing.ParseUtils.requireNoContent;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedAttribute;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
+
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 
 /**
  * A mapper between an AS server's configuration model and XML representations, particularly {@code host.xml}
@@ -1012,7 +1015,7 @@ public class HostXml extends CommonXml implements ManagementXml.Delegate {
             final Element element = Element.forName(reader.getLocalName());
             switch (element) {
                 case JVM:
-                    JvmXml.parseJvm(reader, address, expectedNs, list, names);
+                    JvmXml.parseHostJvm(reader, address, expectedNs, list, names);
                     break;
                 default:
                     throw unexpectedElement(reader);
@@ -1116,7 +1119,7 @@ public class HostXml extends CommonXml implements ManagementXml.Delegate {
                         throw MESSAGES.alreadyDefined(element.getLocalName(), reader.getLocation());
                     }
 
-                    JvmXml.parseJvm(reader, serverAddress, expectedNs, list, new HashSet<String>(), true);
+                    JvmXml.parseServerJvm(reader, serverAddress, expectedNs, list, new HashSet<String>());
                     sawJvm = true;
                     break;
                 }
@@ -1168,7 +1171,7 @@ public class HostXml extends CommonXml implements ManagementXml.Delegate {
                         throw MESSAGES.alreadyDefined(element.getLocalName(), reader.getLocation());
                     }
 
-                    JvmXml.parseJvm(reader, serverAddress, expectedNs, list, new HashSet<String>(), true);
+                    JvmXml.parseServerJvm(reader, serverAddress, expectedNs, list, new HashSet<String>());
                     sawJvm = true;
                     break;
                 }
@@ -1379,10 +1382,12 @@ public class HostXml extends CommonXml implements ManagementXml.Delegate {
             if (server.hasDefined(INTERFACE)) {
                 writeInterfaces(writer, server.get(INTERFACE));
             }
-            if (server.hasDefined(JVM)) {
-                for (final Property jvm : server.get(JVM).asPropertyList()) {
-                    JvmXml.writeJVMElement(writer, jvm.getName(), jvm.getValue());
-                    break; // TODO just write the first !?
+            // JVM
+            if(server.hasDefined(CONFIGURATION)) {
+                if(server.get(CONFIGURATION).hasDefined(JVM)) {
+                    final ModelNode jvm = server.get(CONFIGURATION, JVM);
+                    final String name = jvm.require(JvmAttributes.JVM_REF).asString();
+                    JvmXml.writeJVMElement(writer, name, jvm);
                 }
             }
             if (server.hasDefined(SOCKET_BINDING_GROUP) || server.hasDefined(SOCKET_BINDING_PORT_OFFSET)) {

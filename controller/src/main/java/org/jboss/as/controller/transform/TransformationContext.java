@@ -1,5 +1,6 @@
 package org.jboss.as.controller.transform;
 
+import org.jboss.as.controller.ExpressionResolver;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ProcessType;
@@ -11,7 +12,7 @@ import org.jboss.dmr.ModelNode;
 /**
 * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a>
 */
-public interface TransformationContext {
+public interface TransformationContext extends ExpressionResolver {
 
     /**
      * Get the transformation target.
@@ -76,6 +77,7 @@ public interface TransformationContext {
      * @return the resolved expression
      * @throws OperationFailedException
      */
+    @Override
     ModelNode resolveExpressions(ModelNode node) throws OperationFailedException;
 
 }

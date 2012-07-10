@@ -21,13 +21,12 @@
  */
 package org.jboss.as.host.controller;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_SUBSYSTEM_ENDPOINT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTY;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 
@@ -41,6 +40,7 @@ import java.util.Map.Entry;
 import org.jboss.as.controller.ExpressionResolver;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.host.controller.ManagedServer.ManagedServerBootConfiguration;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 import org.jboss.as.host.controller.model.jvm.JvmElement;
 import org.jboss.as.host.controller.model.jvm.JvmOptionsBuilderFactory;
 import org.jboss.as.process.DefaultJvmUtils;
@@ -88,33 +88,23 @@ class ManagedServerBootCmdFactory implements ManagedServerBootConfiguration {
 
         String serverVMName = null;
         ModelNode serverVM = null;
-        if(serverModel.hasDefined(JVM)) {
-            for(final String jvm : serverModel.get(JVM).keys()) {
-                serverVMName = jvm;
-                serverVM = serverModel.get(JVM, jvm);
-                break;
-            }
+
+        if(serverModel.hasDefined(CONFIGURATION) && serverModel.get(CONFIGURATION).hasDefined(JVM)) {
+            serverVM = serverModel.get(CONFIGURATION, JVM);
+            serverVMName = serverVM.get(JvmAttributes.JVM_REF).asString();
         }
         String groupVMName = null;
         ModelNode groupVM = null;
-        if(serverGroup.hasDefined(JVM)) {
-            for(final String jvm : serverGroup.get(JVM).keys()) {
-                groupVMName = jvm;
-                groupVM = serverGroup.get(JVM, jvm);
-                break;
-            }
+        if(serverGroup.hasDefined(CONFIGURATION) && serverGroup.get(CONFIGURATION).hasDefined(JVM)) {
+            groupVM = serverGroup.get(CONFIGURATION, JVM);
+            groupVMName = groupVM.get(JvmAttributes.JVM_REF).asString();
         }
-        // Use the subsystem endpoint
-        // TODO by default use the subsystem endpoint
-        this.managementSubsystemEndpoint = serverGroup.get(MANAGEMENT_SUBSYSTEM_ENDPOINT).asBoolean(false);
-        // Get the endpoint configuration
-        if(managementSubsystemEndpoint) {
-            final String profileName = serverGroup.get(PROFILE).asString();
-            final ModelNode profile = domainModel.get(PROFILE, profileName);
-            if(profile.hasDefined(SUBSYSTEM) && profile.hasDefined("remoting")) {
-                endpointConfig.set(profile.get(SUBSYSTEM, "remoting"));
-            }
+
+        boolean managementSubsystemEndpoint = false;
+        if (serverGroup.hasDefined(MANAGEMENT_SUBSYSTEM_ENDPOINT)) {
+            managementSubsystemEndpoint = serverGroup.get(MANAGEMENT_SUBSYSTEM_ENDPOINT).asBoolean();
         }
+        this.managementSubsystemEndpoint = managementSubsystemEndpoint;
 
         final String jvmName = serverVMName != null ? serverVMName : groupVMName;
         final ModelNode hostVM = jvmName != null ? hostModel.get(JVM, jvmName) : null;

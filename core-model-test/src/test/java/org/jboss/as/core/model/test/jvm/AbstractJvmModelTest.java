@@ -22,7 +22,10 @@
 package org.jboss.as.core.model.test.jvm;
 
 
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONCURRENT_GROUPS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
@@ -45,6 +48,7 @@ import org.jboss.as.core.model.test.ModelInitializer;
 import org.jboss.as.core.model.test.TestModelType;
 import org.jboss.as.host.controller.model.jvm.JVMEnvironmentVariableAddHandler;
 import org.jboss.as.host.controller.model.jvm.JVMEnvironmentVariableRemoveHandler;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 import org.jboss.as.model.test.ModelTestUtils;
 import org.jboss.dmr.ModelNode;
 import org.junit.Test;
@@ -55,6 +59,8 @@ import org.junit.Test;
  */
 public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
 
+    PathElement JVM_SINGLE = PathElement.pathElement(ModelDescriptionConstants.CONFIGURATION, ModelDescriptionConstants.JVM);
+
     private final TestModelType type;
     private final boolean server;
 
@@ -62,7 +68,6 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         this.type = type;
         this.server = server;
     }
-
 
     @Test
     public void testReadResourceDescription() throws Exception {
@@ -72,11 +77,6 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         ModelNode op = createOperation(READ_RESOURCE_DESCRIPTION_OPERATION);
         op.get(RECURSIVE).set(true);
         kernelServices.executeForResult(op);
-    }
-
-    @Test
-    public void testEmptyJvmAdd() throws Exception {
-        doEmptyJvmAdd();
     }
 
     @Test
@@ -343,6 +343,9 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         ModelNode resource = getJvmResource(kernelServices);
         Assert.assertTrue(resource.keys().size() > 0);
         for (String key : resource.keys()) {
+            if(key.equals(JvmAttributes.JVM_REF)) {
+                continue;
+            }
             Assert.assertFalse(resource.hasDefined(key));
         }
         return kernelServices;
@@ -362,6 +365,9 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         for (String key : resource.keys()) {
             boolean isApartFrom = key.equals(name);
             if (!isApartFrom) {
+                if(key.equals(JvmAttributes.JVM_REF)) {
+                    continue;
+                }
                 Assert.assertFalse(resource.hasDefined(key));
             } else {
                 Assert.assertTrue(resource.hasDefined(key));
@@ -382,7 +388,7 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         return createOperation(name, getPathAddress("test"));
     }
 
-    protected abstract ModelNode getPathAddress(String jvmName, String...subaddress);
+    protected abstract ModelNode getPathAddress(String jvmName, String... subaddress);
 
     protected KernelServicesBuilder createKernelServicesBuilder() {
         return createKernelServicesBuilder(type);
@@ -435,7 +441,11 @@ public abstract class AbstractJvmModelTest extends AbstractCoreModelTest {
         Assert.assertTrue(empty.isDefined());
         Assert.assertTrue(empty.keys().size() > 1);
         for (String key : empty.keys()) {
+            if(key.equals(JvmAttributes.JVM_REF)) {
+                continue;
+            }
             Assert.assertFalse(empty.get(key).isDefined());
         }
     }
+
 }

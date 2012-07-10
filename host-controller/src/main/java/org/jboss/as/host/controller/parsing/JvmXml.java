@@ -61,13 +61,23 @@ import org.jboss.staxmapper.XMLExtendedStreamWriter;
  */
 public class JvmXml {
 
-    public static void parseJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
+    public static void parseServerGroupJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
             final Set<String> jvmNames) throws XMLStreamException {
-        parseJvm(reader, parentAddress, expectedNs, updates, jvmNames, false);
+        parseJvm(reader, parentAddress, expectedNs, updates, jvmNames, false, false);
     }
 
-    public static void parseJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
-            final Set<String> jvmNames, final boolean server) throws XMLStreamException {
+    public static void parseHostJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
+            final Set<String> jvmNames) throws XMLStreamException {
+        parseJvm(reader, parentAddress, expectedNs, updates, jvmNames, false, true);
+    }
+
+    public static void parseServerJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
+            final Set<String> jvmNames) throws XMLStreamException {
+        parseJvm(reader, parentAddress, expectedNs, updates, jvmNames, true, false);
+    }
+
+    private static void parseJvm(final XMLExtendedStreamReader reader, final ModelNode parentAddress, final Namespace expectedNs, final List<ModelNode> updates,
+            final Set<String> jvmNames, final boolean server, final boolean host) throws XMLStreamException {
 
         ModelNode addOp = new ModelNode();
         addOp.get(OP).set(ADD);
@@ -144,7 +154,12 @@ public class JvmXml {
         }
 
         final ModelNode address = parentAddress.clone();
-        address.add(ModelDescriptionConstants.JVM, name);
+        if(host) {
+            address.add(ModelDescriptionConstants.JVM, name);
+        } else {
+            address.add("configuration", ModelDescriptionConstants.JVM);
+            addOp.get(JvmAttributes.JVM_REF).set(name);
+        }
         addOp.get(OP_ADDR).set(address);
         updates.add(addOp);
 

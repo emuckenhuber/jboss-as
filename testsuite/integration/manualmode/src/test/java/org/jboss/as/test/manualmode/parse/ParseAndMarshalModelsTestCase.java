@@ -100,6 +100,7 @@ import org.jboss.as.domain.controller.resources.DomainRootDefinition;
 import org.jboss.as.domain.management.connections.ldap.LdapConnectionResourceDefinition;
 import org.jboss.as.domain.management.security.SecurityRealmResourceDefinition;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
+import org.jboss.as.host.controller.model.jvm.JVMHandlers;
 import org.jboss.as.host.controller.model.jvm.JvmResourceDefinition;
 import org.jboss.as.host.controller.operations.HostSpecifiedInterfaceAddHandler;
 import org.jboss.as.host.controller.operations.HostSpecifiedInterfaceRemoveHandler;
@@ -785,7 +786,7 @@ public class ParseAndMarshalModelsTestCase {
                 hostRegistration.registerOperationHandler(RemoteDomainControllerAddHandler.DEFINITION, remoteDcAddHandler, false);
 
                 // Jvms
-                final ManagementResourceRegistration jvms = hostRegistration.registerSubModel(JvmResourceDefinition.GLOBAL);
+                JVMHandlers.registerHostVM(hostRegistration);
 
                 //Paths
                 ManagementResourceRegistration paths = hostRegistration.registerSubModel(PathResourceDefinition.createSpecified(MOCK_PATH_MANAGER));

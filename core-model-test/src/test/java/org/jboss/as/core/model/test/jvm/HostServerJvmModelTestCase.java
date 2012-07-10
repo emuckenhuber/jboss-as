@@ -21,6 +21,7 @@
 */
 package org.jboss.as.core.model.test.jvm;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONFIGURATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
@@ -32,6 +33,7 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.core.model.test.KernelServices;
 import org.jboss.as.core.model.test.ModelInitializer;
 import org.jboss.as.core.model.test.TestModelType;
+import org.jboss.as.host.controller.model.jvm.JvmAttributes;
 import org.jboss.as.model.test.ModelTestUtils;
 import org.jboss.dmr.ModelNode;
 import org.junit.Test;
@@ -74,7 +76,7 @@ public class HostServerJvmModelTestCase extends AbstractJvmModelTest {
         ModelTestUtils.compareXml(ModelTestUtils.readResource(this.getClass(), "host-server-full.xml"), xml);
 
         //Inspect the actual model
-        ModelNode full = kernelServices.readWholeModel().get(HOST, "master", SERVER_CONFIG, "server-one", JVM, "full");
+        ModelNode full = kernelServices.readWholeModel().get(HOST, "master", SERVER_CONFIG, "server-one", CONFIGURATION, JVM);
         checkFullJvm(full);
     }
 
@@ -89,7 +91,7 @@ public class HostServerJvmModelTestCase extends AbstractJvmModelTest {
         ModelTestUtils.compareXml(ModelTestUtils.readResource(this.getClass(), "host-server-empty.xml"), xml);
 
         //Inspect the actual model
-        ModelNode empty = kernelServices.readWholeModel().get(HOST, "master", SERVER_CONFIG, "server-one", JVM, "empty");
+        ModelNode empty = kernelServices.readWholeModel().get(HOST, "master", SERVER_CONFIG, "server-one", CONFIGURATION, JVM);
         checkEmptyJvm(empty);
     }
 
@@ -100,7 +102,7 @@ public class HostServerJvmModelTestCase extends AbstractJvmModelTest {
 
     @Override
     protected ModelNode getPathAddress(String jvmName, String... subaddress) {
-        return PathAddress.pathAddress(HOST_ELEMENT, SERVER_ONE_ELEMENT, PathElement.pathElement(JVM, "test")).toModelNode();
+        return PathAddress.pathAddress(HOST_ELEMENT, SERVER_ONE_ELEMENT, JVM_SINGLE).toModelNode();
     }
 
     private ModelInitializer bootOpModelInitializer = new ModelInitializer() {
@@ -112,4 +114,11 @@ public class HostServerJvmModelTestCase extends AbstractJvmModelTest {
             host.registerChild(SERVER_TWO_ELEMENT, Resource.Factory.create());
         }
     };
+
+    @Override
+    protected ModelNode createOperation(String name) {
+        final ModelNode operation = super.createOperation(name);
+        operation.get(JvmAttributes.JVM_REF).set("test");
+        return operation;
+    }
 }
