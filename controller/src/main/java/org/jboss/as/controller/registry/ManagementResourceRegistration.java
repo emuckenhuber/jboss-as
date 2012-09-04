@@ -413,6 +413,15 @@ public interface ManagementResourceRegistration extends ImmutableManagementResou
     void registerAlias(PathElement address, AliasEntry aliasEntry);
 
     /**
+     * Register an alias registration to another part of the model.
+     *
+     * @param address the child of this registry that is an alias
+     * @param converter the operation converter
+     * @param target the target registration
+     */
+    void registerAlias(PathElement address, OperationConverter converter, ManagementResourceRegistration target);
+
+    /**
      * Unregister an alias
      *
      * @param address the child of this registry that is an alias

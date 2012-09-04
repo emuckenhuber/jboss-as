@@ -310,8 +310,8 @@ final class ConcreteResourceRegistration extends AbstractResourceRegistration {
     }
 
     @Override
-    public void registerAlias(PathElement address, AliasEntry alias, AbstractResourceRegistration target) {
-        getOrCreateSubregistry(address.getKey()).registerAlias(address.getValue(), alias, target);
+    public void registerAlias(PathElement address, OperationConverter converter, AbstractResourceRegistration target) {
+        getOrCreateSubregistry(address.getKey()).registerAlias(address.getValue(), converter, target);
     }
 
     @Override

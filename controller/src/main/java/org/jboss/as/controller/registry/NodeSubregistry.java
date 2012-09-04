@@ -91,8 +91,8 @@ final class NodeSubregistry {
         childRegistriesUpdater.remove(this, elementValue);
     }
 
-    public AliasResourceRegistration registerAlias(final String elementValue, AliasEntry aliasEntry, AbstractResourceRegistration target) {
-        final AliasResourceRegistration newRegistry = new AliasResourceRegistration(elementValue, this, aliasEntry, target);
+    public AliasResourceRegistration registerAlias(final String elementValue, OperationConverter converter, AbstractResourceRegistration target) {
+        final AliasResourceRegistration newRegistry = new AliasResourceRegistration(elementValue, this, converter, target);
         final AbstractResourceRegistration existingRegistry = childRegistriesUpdater.putIfAbsent(this, elementValue, newRegistry);
         if (existingRegistry != null) {
             throw MESSAGES.nodeAlreadyRegistered(getLocationString(), elementValue);

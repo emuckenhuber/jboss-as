@@ -449,15 +449,21 @@ abstract class AbstractResourceRegistration implements ManagementResourceRegistr
         AbstractResourceRegistration tgtReg = (AbstractResourceRegistration)alias.getTarget();
         PathAddress targetAddress = tgtReg.parent == null ? PathAddress.EMPTY_ADDRESS : tgtReg.getRootInvocation().pathAddress;
         alias.setAddresses(targetAddress, myaddr.append(address));
+
         AbstractResourceRegistration target = (AbstractResourceRegistration)root.getSubModel(alias.getTargetAddress());
         if (target == null) {
             throw ControllerMessages.MESSAGES.aliasTargetResourceRegistrationNotFound(alias.getTargetAddress());
         }
-
-        registerAlias(address, alias, target);
+        registerAlias(address, new OperationConverter.AliasEntryOperationConverter(alias), target);
     }
 
-    protected abstract void registerAlias(PathElement address, AliasEntry alias, AbstractResourceRegistration target);
+    protected abstract void registerAlias(PathElement address, OperationConverter converter, AbstractResourceRegistration target);
+
+    @Override
+    public void registerAlias(PathElement address, OperationConverter converter, ManagementResourceRegistration target) {
+        assert target instanceof AbstractResourceRegistration;
+        registerAlias(address, converter, (AbstractResourceRegistration) target);
+    }
 
     @Override
     public boolean isAlias() {

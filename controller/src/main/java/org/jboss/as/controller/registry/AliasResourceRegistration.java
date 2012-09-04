@@ -50,14 +50,14 @@ import org.jboss.dmr.ModelNode;
  */
 final class AliasResourceRegistration extends AbstractResourceRegistration implements DescriptionProvider {
 
-    private final AliasEntry aliasEntry;
+    // private final AliasEntry aliasEntry;
     private final AliasStepHandler handler;
     private final AbstractResourceRegistration target;
 
-    AliasResourceRegistration(final String valueString, final NodeSubregistry parent, final AliasEntry aliasEntry, final AbstractResourceRegistration target) {
+    AliasResourceRegistration(final String valueString, final NodeSubregistry parent, final OperationConverter converter, final AbstractResourceRegistration target) {
         super(valueString, parent);
         this.aliasEntry = aliasEntry;
-        this.handler = new AliasStepHandler(aliasEntry);
+        this.handler = new AliasStepHandler(converter);
         this.target = target;
     }
 

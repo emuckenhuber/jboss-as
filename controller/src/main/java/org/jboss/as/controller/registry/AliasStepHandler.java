@@ -34,33 +34,36 @@ import org.jboss.dmr.ModelNode;
 
 /**
  * A handler that simply maps an alias onto a target part of the model.
- *
  */
 class AliasStepHandler implements OperationStepHandler {
 
-    private final AliasEntry aliasEntry;
+    private final OperationConverter converter;
 
-    AliasStepHandler(final AliasEntry aliasEntry) {
-        this.aliasEntry = aliasEntry;
+    AliasStepHandler(OperationConverter converter) {
+        this.converter = converter;
     }
 
-
+    AliasStepHandler(AliasEntry entry) {
+        this(new OperationConverter.AliasEntryOperationConverter(entry));
+    }
 
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-        String op = operation.require(OP).asString();
-        PathAddress addr = PathAddress.pathAddress(operation.require(OP_ADDR));
+        final String op = operation.require(OP).asString();
+        final PathAddress addr = PathAddress.pathAddress(operation.require(OP_ADDR));
 
-        PathAddress mapped = aliasEntry.convertToTargetAddress(addr);
+        final ModelNode converted = converter.convert(addr, operation);
+        final PathAddress cAddr = PathAddress.pathAddress(converted.require(OP_ADDR));
 
-        OperationStepHandler targetHandler = context.getRootResourceRegistration().getOperationHandler(mapped, op);
+        OperationStepHandler targetHandler = context.getRootResourceRegistration().getOperationHandler(cAddr, op);
         if (op == null) {
-            throw ControllerMessages.MESSAGES.aliasStepHandlerOperationNotFound(op, addr, mapped);
+            throw ControllerMessages.MESSAGES.aliasStepHandlerOperationNotFound(op, addr, cAddr);
         }
 
-        ModelNode copy = operation.clone();
-        copy.get(OP_ADDR).set(mapped.toModelNode());
+        final ModelNode copy = converted;
         context.addStep(copy, targetHandler, Stage.IMMEDIATE);
         context.stepCompleted();
     }
+
 }
+
