@@ -23,6 +23,7 @@
 package org.jboss.as.host.controller;
 
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ProxyController;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import org.jboss.as.controller.extension.ExtensionRegistry;
@@ -55,6 +56,7 @@ import javax.security.sasl.AuthorizeCallback;
 import javax.security.sasl.RealmCallback;
 
 import org.jboss.as.controller.client.helpers.domain.ServerStatus;
+import org.jboss.as.controller.transform.TransformerRegistry;
 import org.jboss.as.domain.controller.DomainController;
 import org.jboss.as.process.ProcessControllerClient;
 import org.jboss.as.process.ProcessInfo;
@@ -480,17 +482,11 @@ public class ServerInventoryImpl implements ServerInventory {
         final ModelNode hostModel = domainModel.require(HOST).require(hostControllerName);
         final ManagedServerBootCmdFactory combiner = new ManagedServerBootCmdFactory(serverName, domainModel, hostModel, environment);
         final ManagedServer.ManagedServerBootConfiguration configuration = combiner.createConfiguration();
-        final ModelNode subsystems = resolveSubsystems(extensionRegistry);
-        final TransformationTarget target = TransformationTargetImpl.create(extensionRegistry.getTransformerRegistry(), ModelVersion.create(Version.MANAGEMENT_MAJOR_VERSION, Version.MANAGEMENT_MINOR_VERSION, Version.MANAGEMENT_MICRO_VERSION), subsystems, TransformationTarget.TransformationTargetType.SERVER);
+        final Map<PathAddress, ModelVersion> subsystems = TransformerRegistry.resolveVersions(extensionRegistry);
+        final ModelVersion modelVersion = ModelVersion.create(Version.MANAGEMENT_MAJOR_VERSION, Version.MANAGEMENT_MINOR_VERSION, Version.MANAGEMENT_MICRO_VERSION);
+        final TransformationTarget target = TransformationTargetImpl.create(extensionRegistry.getTransformerRegistry(),
+                modelVersion, subsystems, null, TransformationTarget.TransformationTargetType.SERVER);
         return new ManagedServer(hostControllerName, serverName, processControllerClient, managementAddress, configuration, target);
-    }
-
-    public static ModelNode resolveSubsystems(final ExtensionRegistry extensionRegistry) {
-        final ModelNode subsystems = new ModelNode();
-        for (final String extension : extensionRegistry.getExtensionModuleNames()) {
-            extensionRegistry.recordSubsystemVersions(extension, subsystems);
-        }
-        return subsystems;
     }
 
     @Override
