@@ -36,7 +36,7 @@
     <dependencies>
         <module name="javax.api"/>
         <module name="org.jboss.staxmapper"/>
-	<module name="org.jboss.common-beans" services="export"/>
+        <module name="org.jboss.common-beans" services="export"/>
         <module name="org.jboss.dmr"/>
         <module name="org.jboss.invocation"/>
         <module name="org.jboss.jandex"/>
@@ -59,6 +59,7 @@
         <module name="org.jboss.as.embedded"/>
         <module name="org.jboss.as.jmx" services="import"/>
         <module name="org.jboss.as.network"/>
+        <module name="org.jboss.as.patching"/>
         <module name="org.jboss.as.platform-mbean"/>
         <module name="org.jboss.as.process-controller"/>
         <module name="org.jboss.as.protocol"/>

@@ -297,6 +297,7 @@
         <module>management-client-content</module>
         <module>jmx</module>
         <module>network</module>
+        <module>patching</module>
         <module>platform-mbean</module>
         <module>process-controller</module>
         <module>protocol</module>
@@ -1082,6 +1083,19 @@
             <dependency>
                 <groupId>org.jboss.as</groupId>
                 <artifactId>jboss-as-osgi-integration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-patching</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-patching</artifactId>
+                <classifier>loader</classifier>
                 <version>${project.version}</version>
             </dependency>
 
