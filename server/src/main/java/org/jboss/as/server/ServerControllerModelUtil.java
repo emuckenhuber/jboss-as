@@ -43,6 +43,7 @@ import org.jboss.as.controller.services.path.PathManagerService;
 import org.jboss.as.controller.services.path.PathResourceDefinition;
 import org.jboss.as.domain.management.connections.ldap.LdapConnectionResourceDefinition;
 import org.jboss.as.domain.management.security.SecurityRealmResourceDefinition;
+import org.jboss.as.patching.PatchResourceRegistration;
 import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.controller.resources.DeploymentAttributes;
@@ -102,6 +103,9 @@ public class ServerControllerModelUtil {
         ManagementResourceRegistration serviceContainer = root.registerSubModel(
                 new SimpleResourceDefinition(PathElement.pathElement(CORE_SERVICE, SERVICE_CONTAINER), ControllerResolver.getResolver("core", SERVICE_CONTAINER)));
         serviceContainer.registerOperationHandler(DumpServicesHandler.DEFINITION, DumpServicesHandler.INSTANCE);
+
+        // Patching
+        PatchResourceRegistration.registerPatchModel(root);
 
         // Platform MBeans
         PlatformMBeanResourceRegistrar.registerPlatformMBeanResources(root);

@@ -21,7 +21,7 @@ do
           fi
           ;;
       --)
-          shift 
+          shift
           break;;
       *)
           SERVER_OPTS="$SERVER_OPTS $1"
@@ -212,7 +212,9 @@ while true; do
       eval \"$JAVA\" -D\"[Standalone]\" $JAVA_OPTS \
          \"-Dorg.jboss.boot.log.file=$JBOSS_LOG_DIR/boot.log\" \
          \"-Dlogging.configuration=file:$JBOSS_CONFIG_DIR/logging.properties\" \
-         -jar \"$JBOSS_HOME/jboss-modules.jar\" \
+         \"-Dboot.module.loader=org.jboss.as.patching.loader.BootLoader\" \
+         -cp \"$JBOSS_HOME/jboss-modules.jar:$JBOSS_HOME/loader.jar\" \
+         org.jboss.modules.Main \
          -mp \"${JBOSS_MODULEPATH}\" \
          -jaxpmodule "javax.xml.jaxp-provider" \
          org.jboss.as.standalone \
@@ -225,7 +227,9 @@ while true; do
       eval \"$JAVA\" -D\"[Standalone]\" $JAVA_OPTS \
          \"-Dorg.jboss.boot.log.file=$JBOSS_LOG_DIR/boot.log\" \
          \"-Dlogging.configuration=file:$JBOSS_CONFIG_DIR/logging.properties\" \
-         -jar \"$JBOSS_HOME/jboss-modules.jar\" \
+         \"-Dboot.module.loader=org.jboss.as.patching.loader.BootLoader\" \
+         -cp \"$JBOSS_HOME/jboss-modules.jar:$JBOSS_HOME/loader.jar\" \
+         org.jboss.modules.Main \
          -mp \"${JBOSS_MODULEPATH}\" \
          -jaxpmodule "javax.xml.jaxp-provider" \
          org.jboss.as.standalone \

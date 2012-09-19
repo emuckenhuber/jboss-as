@@ -49,7 +49,7 @@
         </copy>
         <!-- Convert .bat files to DOS line endings -->
         <fixcrlf srcdir="${output.dir}/bin" includes="**/*.bat" eol="crlf" />
-        <!-- Convert .sh files to Unix line endings -->    	
+        <!-- Convert .sh files to Unix line endings -->
         <fixcrlf srcdir="${output.dir}/bin" includes="**/*.sh" eol="lf" />
         <fixcrlf srcdir="${output.dir}/bin" includes="**/*.conf" eol="lf" />
         <!-- These files contain digested passwords, which should not be visible to external users -->
@@ -168,6 +168,7 @@
     <target name="modules-minimalistic">
 
         <copy file="${org.jboss.modules:jboss-modules:jar}" tofile="${output.dir}/jboss-modules.jar"/>
+        <copy file="${org.jboss.as:jboss-as-patching:jar:loader}" tofile="${output.dir}/loader.jar"/>
 
         <!--
           ~ Minimalistic list of modules to assemble.
@@ -219,6 +220,10 @@
 
         <module-def name="org.jboss.as.network">
             <maven-resource group="org.jboss.as" artifact="jboss-as-network"/>
+        </module-def>
+
+        <module-def name="org.jboss.as.patching">
+            <maven-resource group="org.jboss.as" artifact="jboss-as-patching"/>
         </module-def>
 
         <module-def name="org.jboss.as.platform-mbean">
@@ -953,11 +958,11 @@
         <module-def name="org.jboss.as.security">
             <maven-resource group="org.jboss.as" artifact="jboss-as-security"/>
         </module-def>
-    	
+
     	<module-def name="org.jboss.as.system-jmx">
             <maven-resource group="org.jboss.as" artifact="jboss-as-system-jmx"/>
         </module-def>
-        
+
         <module-def name="org.jboss.as.transactions">
             <maven-resource group="org.jboss.as" artifact="jboss-as-transactions"/>
         </module-def>
@@ -1093,7 +1098,7 @@
 
         <module-def name="org.jboss.remoting-jmx">
             <maven-resource group="org.jboss.remotingjmx" artifact="remoting-jmx"/>
-        </module-def>    	
+        </module-def>
 
         <module-def name="org.jboss.resteasy.resteasy-atom-provider">
             <maven-resource group="org.jboss.resteasy" artifact="resteasy-atom-provider"  jandex="true"/>
