@@ -57,6 +57,7 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.HostModelUtil;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
+import org.jboss.as.patching.PatchResourceRegistration;
 import org.jboss.as.platform.mbean.PlatformMBeanConstants;
 import org.jboss.as.platform.mbean.RootPlatformMBeanResource;
 import org.jboss.as.version.Version;
@@ -117,6 +118,9 @@ public class HostModelRegistrationHandler implements OperationStepHandler, Descr
         //Create the empty host-environment resource
         context.createResource(hostAddress.append(PathElement.pathElement(CORE_SERVICE, HOST_ENVIRONMENT)));
 
+        // Patching resource
+        PatchResourceRegistration.registerPatchResource(rootResource);
+
         // Wire in the platform mbean resources. We're bypassing the context.createResource API here because
         // we want to use our own resource type. But it's ok as the createResource calls above have taken the lock
         rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
@@ -158,18 +162,18 @@ public class HostModelRegistrationHandler implements OperationStepHandler, Descr
             }
         }
 
-        root.get(NAME);
-        root.get(NAMESPACES).setEmptyList();
-        root.get(SCHEMA_LOCATIONS).setEmptyList();
-        root.get(EXTENSION);
-        root.get(SYSTEM_PROPERTY);
-        root.get(PATH);
-        root.get(CORE_SERVICE);
-        root.get(SERVER_CONFIG);
-        root.get(DOMAIN_CONTROLLER);
-        root.get(INTERFACE);
-        root.get(JVM);
-        root.get(RUNNING_SERVER);
+//        root.get(NAME);
+//        root.get(NAMESPACES).setEmptyList();
+//        root.get(SCHEMA_LOCATIONS).setEmptyList();
+//        root.get(EXTENSION);
+//        root.get(SYSTEM_PROPERTY);
+//        root.get(PATH);
+//        root.get(CORE_SERVICE);
+//        root.get(SERVER_CONFIG);
+//        root.get(DOMAIN_CONTROLLER);
+//        root.get(INTERFACE);
+//        root.get(JVM);
+//        root.get(RUNNING_SERVER);
     }
 
 }
