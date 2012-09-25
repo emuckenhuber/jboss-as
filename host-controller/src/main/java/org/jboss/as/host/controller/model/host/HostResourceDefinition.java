@@ -66,6 +66,7 @@ import org.jboss.as.host.controller.operations.StartServersHandler;
 import org.jboss.as.host.controller.resources.HttpManagementResourceDefinition;
 import org.jboss.as.host.controller.resources.NativeManagementResourceDefinition;
 import org.jboss.as.host.controller.resources.ServerConfigResourceDefinition;
+import org.jboss.as.patching.PatchResourceRegistration;
 import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.repository.HostFileRepository;
@@ -292,6 +293,9 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
 
         /////////////////////////////////////////
         // Core Services
+
+        // Patches
+        PatchResourceRegistration.registerPatchModel(hostRegistration);
 
         //vault
         hostRegistration.registerSubModel(new VaultResourceDefinition(vaultReader));

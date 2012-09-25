@@ -22,6 +22,7 @@
 
 package org.jboss.as.host.controller;
 
+import org.jboss.as.patching.PatchInfoService;
 import static org.jboss.as.server.ServerLogger.AS_ROOT_LOGGER;
 import static org.jboss.as.server.ServerLogger.CONFIG_LOGGER;
 
@@ -45,6 +46,7 @@ import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.server.BootstrapListener;
 import org.jboss.as.server.FutureServiceContainer;
 import org.jboss.as.threads.ThreadFactoryService;
+import org.jboss.as.version.Version;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContainer;
@@ -142,6 +144,11 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
         // Install required path services. (Only install those identified as required)
         HostPathManagerService hostPathManagerService = new HostPathManagerService();
         HostPathManagerService.addService(serviceTarget, hostPathManagerService, environment);
+
+        // Install the patch service
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, environment.getHomeDir()))
+                .setInitialMode(ServiceController.Mode.ACTIVE)
+                .install();
 
         DomainModelControllerService.addService(serviceTarget, environment, runningModeControl, processState, bootstrapListener, hostPathManagerService);
     }
