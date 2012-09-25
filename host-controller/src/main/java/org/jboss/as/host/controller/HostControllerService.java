@@ -39,9 +39,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.patching.PatchInfoService;
 import org.jboss.as.remoting.management.ManagementRemotingServices;
 import org.jboss.as.server.BootstrapListener;
 import org.jboss.as.server.FutureServiceContainer;
+import org.jboss.as.version.Version;
 import org.wildfly.security.manager.GetAccessControlContextAction;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.Service;
@@ -138,6 +140,11 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
         // Install required path services. (Only install those identified as required)
         HostPathManagerService hostPathManagerService = new HostPathManagerService();
         HostPathManagerService.addService(serviceTarget, hostPathManagerService, environment);
+
+        // Install the patch service
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, environment.getHomeDir()))
+                .setInitialMode(ServiceController.Mode.ACTIVE)
+                .install();
 
         DomainModelControllerService.addService(serviceTarget, environment, runningModeControl, processState, bootstrapListener, hostPathManagerService);
     }
