@@ -51,7 +51,12 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.as.controller.services.path.PathManagerService;
+<<<<<<< HEAD
 import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
+=======
+import org.jboss.as.controller.services.path.PathResourceDefinition;
+import org.jboss.as.patching.PatchResourceRegistration;
+>>>>>>> add patching model resource
 import org.jboss.as.platform.mbean.PlatformMBeanConstants;
 import org.jboss.as.platform.mbean.RootPlatformMBeanResource;
 import org.jboss.as.remoting.management.ManagementRemotingServices;
@@ -366,6 +371,8 @@ public final class ServerService extends AbstractControllerService {
 
         // Platform MBeans
         rootResource.registerChild(PlatformMBeanConstants.ROOT_PATH, new RootPlatformMBeanResource());
+        // Patching resource
+        PatchResourceRegistration.registerPatchResource(rootResource);
     }
 
     /** Temporary replacement for QueuelessThreadPoolService */
