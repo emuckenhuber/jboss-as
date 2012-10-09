@@ -223,25 +223,37 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         }
 
         // Modules
-        writer.writeStartElement(Element.MODULES.name);
-        writeSlottedItems(writer, Element.ADDED_MODULE, modulesAdd);
-        writeSlottedItems(writer, Element.UPDATED_MODULE, modulesUpdate);
-        writeSlottedItems(writer, Element.REMOVED_MODULE, modulesRemove);
-        writer.writeEndElement();
+        if (!modulesAdd.isEmpty() ||
+                !modulesUpdate.isEmpty() ||
+                !modulesRemove.isEmpty()) {
+            writer.writeStartElement(Element.MODULES.name);
+            writeSlottedItems(writer, Element.ADDED_MODULE, modulesAdd);
+            writeSlottedItems(writer, Element.UPDATED_MODULE, modulesUpdate);
+            writeSlottedItems(writer, Element.REMOVED_MODULE, modulesRemove);
+            writer.writeEndElement();
+        }
 
         // Bundles
-        writer.writeStartElement(Element.BUNDLES.name);
-        writeSlottedItems(writer, Element.ADDED_BUNDLE, bundlesAdd);
-        writeSlottedItems(writer, Element.UPDATED_BUNDLE, bundlesUpdate);
-        writeSlottedItems(writer, Element.REMOVED_BUNDLE, bundlesRemove);
-        writer.writeEndElement();
+        if (!bundlesAdd.isEmpty() ||
+                !bundlesUpdate.isEmpty() ||
+                !bundlesRemove.isEmpty()) {
+            writer.writeStartElement(Element.BUNDLES.name);
+            writeSlottedItems(writer, Element.ADDED_BUNDLE, bundlesAdd);
+            writeSlottedItems(writer, Element.UPDATED_BUNDLE, bundlesUpdate);
+            writeSlottedItems(writer, Element.REMOVED_BUNDLE, bundlesRemove);
+            writer.writeEndElement();
+        }
 
         // Misc
-        writer.writeStartElement(Element.MISC_FILES.name);
-        writeMiscItems(writer, Element.ADDED_MISC_CONTENT, miscAdd);
-        writeMiscItems(writer, Element.UPDATED_MISC_CONTENT, miscUpdate);
-        writeMiscItems(writer, Element.REMOVED_MISC_CONTENT, miscRemove);
-        writer.writeEndElement();
+        if (!miscAdd.isEmpty() ||
+                !miscUpdate.isEmpty() ||
+                !miscRemove.isEmpty()) {
+            writer.writeStartElement(Element.MISC_FILES.name);
+            writeMiscItems(writer, Element.ADDED_MISC_CONTENT, miscAdd);
+            writeMiscItems(writer, Element.UPDATED_MISC_CONTENT, miscUpdate);
+            writeMiscItems(writer, Element.REMOVED_MISC_CONTENT, miscRemove);
+            writer.writeEndElement();
+        }
 
         // Done
         writer.writeEndElement();
