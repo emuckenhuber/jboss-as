@@ -498,6 +498,9 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         path.append(item.getName());
 
         writer.writeAttribute(Attribute.PATH.name, path.toString());
+        if (item.isDirectory()) {
+            writer.writeAttribute(Attribute.DIRECTORY.name, "true");
+        }
 
         if(type != ModificationType.REMOVE) {
             writer.writeAttribute(Attribute.HASH.name, bytesToHexString(item.getContentHash()));
