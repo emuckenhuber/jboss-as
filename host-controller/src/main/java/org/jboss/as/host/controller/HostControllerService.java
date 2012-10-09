@@ -33,10 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeSet;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -45,8 +42,7 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.server.BootstrapListener;
 import org.jboss.as.server.FutureServiceContainer;
-import org.jboss.as.threads.ThreadFactoryService;
-import org.jboss.as.version.Version;
+import org.jboss.as.version.ProductConfig;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContainer;
@@ -57,7 +53,6 @@ import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.AsyncFuture;
 import org.jboss.threads.JBossThreadFactory;
 
@@ -93,7 +88,8 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
 
         processState.setStarting();
 
-        String prettyVersion = environment.getProductConfig().getPrettyVersionString();
+        final ProductConfig config = environment.getProductConfig();
+        final String prettyVersion = config.getPrettyVersionString();
         AS_ROOT_LOGGER.serverStarting(prettyVersion);
         if (CONFIG_LOGGER.isDebugEnabled()) {
             final Properties properties = System.getProperties();
@@ -146,7 +142,7 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
         HostPathManagerService.addService(serviceTarget, hostPathManagerService, environment);
 
         // Install the patch service
-        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, environment.getHomeDir()))
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(config, environment.getHomeDir()))
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
 
