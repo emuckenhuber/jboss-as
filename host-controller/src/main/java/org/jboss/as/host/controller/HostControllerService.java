@@ -43,8 +43,8 @@ import org.jboss.as.patching.PatchInfoService;
 import org.jboss.as.remoting.management.ManagementRemotingServices;
 import org.jboss.as.server.BootstrapListener;
 import org.jboss.as.server.FutureServiceContainer;
-import org.jboss.as.version.Version;
 import org.wildfly.security.manager.GetAccessControlContextAction;
+import org.jboss.as.version.ProductConfig;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceContainer;
@@ -89,7 +89,8 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
 
         processState.setStarting();
 
-        String prettyVersion = environment.getProductConfig().getPrettyVersionString();
+        final ProductConfig config = environment.getProductConfig();
+        final String prettyVersion = config.getPrettyVersionString();
         AS_ROOT_LOGGER.serverStarting(prettyVersion);
         if (CONFIG_LOGGER.isDebugEnabled()) {
             final Properties properties = System.getProperties();
@@ -142,7 +143,7 @@ public class HostControllerService implements Service<AsyncFuture<ServiceContain
         HostPathManagerService.addService(serviceTarget, hostPathManagerService, environment);
 
         // Install the patch service
-        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(Version.AS_VERSION, environment.getHomeDir()))
+        serviceTarget.addService(PatchInfoService.NAME, new PatchInfoService(config, environment.getHomeDir()))
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
 
