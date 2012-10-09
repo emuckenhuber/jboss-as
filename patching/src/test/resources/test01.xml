@@ -47,11 +47,11 @@
 
     <misc-files>
         <added-misc-content path="test/file" hash="1a2b3c4d" />
-        <added-misc-content path="test/file2" hash="5e6f7a" />
+        <added-misc-content path="test/file2" hash="5e6f7a" directory="true" />
         <updated-misc-content path="test/file" hash="1a2b3c4d" existing-hash="2b3c4d5e" />
-        <updated-misc-content path="test/file3" hash="5e6f7a" existing-hash="6e7f8e" />
+        <updated-misc-content path="test/file3" hash="5e6f7a" existing-hash="6e7f8e" directory="true" />
         <removed-misc-content path="test/file" existing-hash="1a2b3c4d" in-runtime-use="true" />
-        <removed-misc-content path="test/file4" existing-hash="5e6f7a" />
+        <removed-misc-content path="test/file4" existing-hash="5e6f7a" directory="true" />
     </misc-files>
 
 </patch>
