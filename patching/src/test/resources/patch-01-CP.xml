@@ -23,7 +23,7 @@
 
 <patch xmlns="urn:jboss:patch:1.0">
 
-    <name>patch-12345</name>
+    <name>patch-01</name>
     <description>patch description</description>
     <cumulative applies-to-version="1.2.3" resulting-version="2.3.4" />
 
