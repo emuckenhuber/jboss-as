@@ -59,7 +59,7 @@ public interface Patch {
     PatchType getPatchType();
 
     /**
-     * Get the resulting version of a CP.
+     * Get the resulting version of a CP or {@code null} for a one-off patch
      *
      * @return the resulting version
      */
