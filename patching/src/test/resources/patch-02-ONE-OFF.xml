@@ -25,7 +25,10 @@
 
     <name>patch-02</name>
     <description>patch description</description>
-    <one-off applies-to-version="1.2.3" />
+    <one-off>
+        <applies-to-version>1.2.3</applies-to-version>
+        <applies-to-version>4.5.6</applies-to-version>
+    </one-off>
 
     <modules>
         <updated-module name="org.jboss.as.test" existing-hash="1a2b3c4d" />
