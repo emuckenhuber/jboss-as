@@ -60,7 +60,7 @@ class ModuleRemoveTask extends AbstractModuleTask {
     static byte[] getFileContent(final ModuleItem item) {
         final StringBuilder builder = new StringBuilder(128);
         builder.append("<?xml version='1.0' encoding='UTF-8'?>\n<module-absent xmlns=\"urn:jboss:module:1.2\"");
-        builder.append(" module=\"").append(item.getName()).append("\"");
+        builder.append(" name=\"").append(item.getName()).append("\"");
         builder.append(" slot=\"").append(item.getSlot()).append("\"");
         builder.append(" />\n");
         return builder.toString().getBytes();
