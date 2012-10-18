@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 /**
  * Removing a module will create a module.xml containing a <module-absent /> element, which
@@ -63,7 +64,7 @@ class ModuleRemoveTask extends AbstractModuleTask {
         builder.append(" name=\"").append(item.getName()).append("\"");
         builder.append(" slot=\"").append(item.getSlot()).append("\"");
         builder.append(" />\n");
-        return builder.toString().getBytes();
+        return builder.toString().getBytes(Charset.forName("UTF-8"));
     }
 
 }
