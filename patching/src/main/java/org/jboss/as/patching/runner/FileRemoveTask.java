@@ -95,7 +95,7 @@ class FileRemoveTask implements PatchingTask {
     @Override
     public void execute(PatchingContext context) throws IOException {
         // delete the file or directory recursively
-        boolean ok = recursiveDelete(target);
+        boolean ok = PatchUtils.recursiveDelete(target);
         for(ContentModification mod : rollback) {
             // Add the rollback (add actions)
             context.recordRollbackAction(mod);
@@ -138,20 +138,6 @@ class FileRemoveTask implements PatchingTask {
     static ContentModification createRollbackItem(String name, List<String> path,  byte[] backupHash, boolean directory) {
         final MiscContentItem backupItem = new MiscContentItem(name, path, backupHash, directory);
         return new ContentModification(backupItem, NO_CONTENT, ModificationType.ADD);
-    }
-
-    static boolean recursiveDelete(File root) {
-        boolean ok = true;
-        if (root.isDirectory()) {
-            final File[] files = root.listFiles();
-            for (File file : files) {
-                ok &= recursiveDelete(file);
-            }
-            return ok && (root.delete() || !root.exists());
-        } else {
-            ok &= root.delete() || !root.exists();
-        }
-        return ok;
     }
 
     static byte[] copy(File source, File target) throws IOException {
