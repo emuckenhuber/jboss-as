@@ -32,6 +32,8 @@ import org.jboss.logging.annotations.Cause;
 import java.io.IOException;
 import java.util.List;
 
+import javax.xml.stream.XMLStreamException;
+
 /**
  * 16840 - 16899
  *
@@ -56,4 +58,7 @@ public interface PatchMessages {
 
     @Message(id = 16845, value = "Failed to show history of patches")
     OperationFailedException failedToShowHistory(@Cause Throwable cause);
+
+    @Message(id = 16846, value = "resulting-version is not allowed for one-off patch")
+    XMLStreamException resultingVersionForCumulativePatchOnly();
 }
