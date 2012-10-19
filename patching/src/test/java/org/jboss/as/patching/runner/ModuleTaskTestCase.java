@@ -22,21 +22,20 @@
 
 package org.jboss.as.patching.runner;
 
-import static junit.framework.Assert.assertFalse;
 import static org.jboss.as.patching.metadata.ModificationType.ADD;
 import static org.jboss.as.patching.metadata.ModificationType.MODIFY;
 import static org.jboss.as.patching.metadata.ModificationType.REMOVE;
 import static org.jboss.as.patching.runner.PatchUtils.calculateHash;
-import static org.jboss.as.patching.runner.PatchUtils.recursiveDelete;
 import static org.jboss.as.patching.runner.PatchingTask.NO_CONTENT;
 import static org.jboss.as.patching.runner.TestUtils.assertContains;
 import static org.jboss.as.patching.runner.TestUtils.assertDefinedAbsentModule;
 import static org.jboss.as.patching.runner.TestUtils.assertDefinedModule;
-import static org.jboss.as.patching.runner.TestUtils.assertFileExists;
-import static org.jboss.as.patching.runner.TestUtils.createDir;
+import static org.jboss.as.patching.runner.TestUtils.assertDirExists;
+import static org.jboss.as.patching.runner.TestUtils.assertPatchHasBeenApplied;
 import static org.jboss.as.patching.runner.TestUtils.createModule;
 import static org.jboss.as.patching.runner.TestUtils.createPatchXMLFile;
 import static org.jboss.as.patching.runner.TestUtils.createZippedPatchFile;
+import static org.jboss.as.patching.runner.TestUtils.mkdir;
 import static org.jboss.as.patching.runner.TestUtils.randomString;
 import static org.jboss.as.patching.runner.TestUtils.tree;
 
@@ -44,7 +43,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.Collections;
 
-import org.jboss.as.boot.DirectoryStructure;
 import org.jboss.as.patching.LocalPatchInfo;
 import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.metadata.ContentModification;
@@ -52,37 +50,12 @@ import org.jboss.as.patching.metadata.ModuleItem;
 import org.jboss.as.patching.metadata.Patch;
 import org.jboss.as.patching.metadata.Patch.PatchType;
 import org.jboss.as.patching.metadata.PatchBuilder;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2012, Red Hat Inc
  */
-public class ModuleTaskTestCase {
-
-    private File tempDir;
-    private DirectoryStructure env;
-    private String storedModulesPath = System.getProperty("module.path");
-
-    @Before
-    public void setup() throws Exception {
-        tempDir = createDir(new File(System.getProperty("java.io.tmpdir")), randomString());
-        File jbossHome = createDir(tempDir, "jboss-installation");
-        env = DirectoryStructure.createDefault(jbossHome); 
-        // make sur we put the installation modules dir in the module.path
-        // FIXME is there a way set the module path without changing this sys prop?
-        System.setProperty("module.path", env.getInstalledImage().getModulesDir().getAbsolutePath());
-    }
-
-    @After
-    public void tearDown() {
-        recursiveDelete(tempDir);
-        // reset the module.path sys prop
-        if (storedModulesPath != null) {
-            System.setProperty("module.path", storedModulesPath);
-        }
-    }
+public class ModuleTaskTestCase extends AbstractTaskTestCase{
 
     @Test
     public void testAddModule() throws Exception {
@@ -91,35 +64,31 @@ public class ModuleTaskTestCase {
         PatchInfo info = new LocalPatchInfo(randomString(), PatchInfo.BASE, Collections.<String>emptyList(), env);
 
         // build a one-off patch for the base installation
-        // with 1 added module        
+        // with 1 added module
+        String patchID = randomString();
+        File patchDir = mkdir(tempDir, patchID);
         String moduleName = randomString();
-        ContentModification moduleAdded = new ContentModification(new ModuleItem(moduleName, NO_CONTENT), NO_CONTENT, ADD);
+        File moduleDir = createModule(patchDir, moduleName);
+        byte[] newHash = calculateHash(moduleDir);
+        ContentModification moduleAdded = new ContentModification(new ModuleItem(moduleName, NO_CONTENT), newHash, ADD);
 
         Patch patch = PatchBuilder.create()
-                .setPatchId(randomString())
+                .setPatchId(patchID)
                 .setDescription(randomString())
                 .setPatchType(PatchType.ONE_OFF)
                 .addAppliesTo(info.getVersion())
                 .addContentModification(moduleAdded)
                 .build();
-
-        // create the patch with the new module
-        File patchDir = createDir(tempDir, patch.getPatchId());
-        File patchModulesDir = createDir(patchDir, "modules");
-        File moduleDir = createModule(patchModulesDir, moduleName);
         createPatchXMLFile(patchDir, patch);
-        tree(patchDir);
-        byte[] newHash = calculateHash(moduleDir);        
-        File zippedPatch = createZippedPatchFile(patchDir, patch.getPatchId());
+        File zippedPatch = createZippedPatchFile(patchDir, patchID);
 
         PatchingTaskRunner runner = new PatchingTaskRunner(info, env);
         PatchingResult result = runner.executeDirect(new FileInputStream(zippedPatch), ContentVerificationPolicy.STRICT);
 
-        assertFalse(result.hasFailures());        
-        tree(env.getInstalledImage().getJbossHome());
+        assertPatchHasBeenApplied(result, patch);
 
-        File modulesPatchDir = env.getModulePatchDirectory(patch.getPatchId());
-        assertFileExists(modulesPatchDir, true);
+        File modulesPatchDir = env.getModulePatchDirectory(patchID);
+        assertDirExists(modulesPatchDir);
         assertContains(modulesPatchDir, result.getPatchInfo().getModulePath());
         assertDefinedModule(result.getPatchInfo().getModulePath(), moduleName, newHash);
     }
@@ -133,9 +102,7 @@ public class ModuleTaskTestCase {
         PatchInfo info = new LocalPatchInfo(randomString(), PatchInfo.BASE, Collections.<String>emptyList(), env);
 
         // create an empty module in the AS7 installation
-        createModule(env.getInstalledImage().getModulesDir(), moduleName);
-
-        tree(env.getInstalledImage().getJbossHome());
+        createModule(env.getInstalledImage().getJbossHome(), moduleName);
         byte[] existingHash = calculateHash(new File(env.getInstalledImage().getModulesDir(), moduleName));
 
         // build a one-off patch for the base installation
@@ -150,19 +117,18 @@ public class ModuleTaskTestCase {
                 .addContentModification(moduleRemoved)
                 .build();
 
-        // create the patch with the new module
-        File patchDir = createDir(tempDir, patch.getPatchId());
+        // create the patch
+        File patchDir = mkdir(tempDir, patch.getPatchId());
         createPatchXMLFile(patchDir, patch);
         File zippedPatch = createZippedPatchFile(patchDir, patch.getPatchId());
 
         PatchingTaskRunner runner = new PatchingTaskRunner(info, env);
         PatchingResult result = runner.executeDirect(new FileInputStream(zippedPatch), ContentVerificationPolicy.STRICT);
 
-        assertFalse(result.hasFailures());        
-        tree(env.getInstalledImage().getJbossHome());
+        assertPatchHasBeenApplied(result, patch);
 
         File modulesPatchDir = env.getModulePatchDirectory(patch.getPatchId());
-        assertFileExists(modulesPatchDir, true);
+        assertDirExists(modulesPatchDir);
         assertContains(modulesPatchDir, result.getPatchInfo().getModulePath()); 
         assertDefinedAbsentModule(result.getPatchInfo().getModulePath(), moduleName);
     }
@@ -176,43 +142,41 @@ public class ModuleTaskTestCase {
         PatchInfo info = new LocalPatchInfo(randomString(), PatchInfo.BASE, Collections.<String>emptyList(), env);
 
         // create an empty module in the AS7 installation
-        createModule(env.getInstalledImage().getModulesDir(), moduleName);
+        createModule(env.getInstalledImage().getJbossHome(), moduleName);
 
         tree(env.getInstalledImage().getJbossHome());
         byte[] existingHash = calculateHash(new File(env.getInstalledImage().getModulesDir(), moduleName));
 
-
         // build a one-off patch for the base installation
         // with 1 module updated
-        ContentModification moduleUpdated = new ContentModification(new ModuleItem(moduleName, existingHash), existingHash, MODIFY);
+
+        String patchID = randomString();
+        File patchDir = mkdir(tempDir, patchID);
+
+        // create the patch with the update module
+        File moduleDir = createModule(patchDir, moduleName, "new resource in the module");
+        byte[] updatedHash = calculateHash(moduleDir);
+        ContentModification moduleUpdated = new ContentModification(new ModuleItem(moduleName, updatedHash), existingHash, MODIFY);
 
         Patch patch = PatchBuilder.create()
-                .setPatchId(randomString())
+                .setPatchId(patchID)
                 .setDescription(randomString())
                 .setPatchType(PatchType.ONE_OFF)
                 .addAppliesTo(info.getVersion())
                 .addContentModification(moduleUpdated)
                 .build();
-
-        // create the patch with the new module
-        File patchDir = createDir(tempDir, patch.getPatchId());
-        File patchModulesDir = createDir(patchDir, "modules");
-        File moduleDir = createModule(patchModulesDir, moduleName, "new resource in the module");
         createPatchXMLFile(patchDir, patch);
-        tree(patchDir);
-        byte[] newHash = calculateHash(moduleDir);        
         File zippedPatch = createZippedPatchFile(patchDir, patch.getPatchId());
 
         PatchingTaskRunner runner = new PatchingTaskRunner(info, env);
         PatchingResult result = runner.executeDirect(new FileInputStream(zippedPatch), ContentVerificationPolicy.STRICT);
 
-        assertFalse(result.hasFailures());
-        tree(env.getInstalledImage().getJbossHome());
+        assertPatchHasBeenApplied(result, patch);
 
         File modulesPatchDir = env.getModulePatchDirectory(patch.getPatchId());
-        assertFileExists(modulesPatchDir, true);
+        assertDirExists(modulesPatchDir);
         assertContains(modulesPatchDir, result.getPatchInfo().getModulePath());
         // check that the defined module is the updated one
-        assertDefinedModule(result.getPatchInfo().getModulePath(), moduleName, newHash);
+        assertDefinedModule(result.getPatchInfo().getModulePath(), moduleName, updatedHash);
     }
 }

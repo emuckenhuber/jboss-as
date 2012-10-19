@@ -25,23 +25,21 @@ package org.jboss.as.patching.runner;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.UUID.randomUUID;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
 import static org.jboss.as.patching.PatchLogger.ROOT_LOGGER;
 import static org.jboss.as.patching.generator.PatchUtils.safeClose;
+import static org.jboss.as.patching.metadata.Patch.PatchType.CUMULATIVE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipOutputStream;
 
 import org.jboss.as.patching.generator.ZipUtils;
 import org.jboss.as.patching.metadata.Patch;
@@ -76,7 +74,6 @@ public class TestUtils {
     }
 
     public static File createModuleXmlFile(File mainDir, String moduleName, String... resources) throws Exception {
-        File moduleXMLFile = new File(mainDir, "module.xml");
         StringBuilder content = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         content.append(format("<module xmlns=\"urn:jboss:module:1.2\" name=\"%s\" slot=\"main\" />\n", moduleName));
         content.append("  <resources>\n");
@@ -87,29 +84,38 @@ public class TestUtils {
         content.append("  </resources>\n");
         content.append("</module>\n");
         ROOT_LOGGER.trace(content);
-        createFile(moduleXMLFile, content.toString());
+        File moduleXMLFile = touch(mainDir, "module.xml");
+        dump(moduleXMLFile, content.toString());
         return moduleXMLFile;
     }
 
-    public static File createModule(File modulesDir, String moduleName, String... resourcesContents) throws Exception {
-        File moduleDir = new File(modulesDir, moduleName);
-        File mainDir = new File(moduleDir, "main");
-        mainDir.mkdirs();
+    public static File createModule(File baseDir, String moduleName, String... resourcesContents) throws Exception {
+        File moduleDir = mkdir(baseDir, "modules", moduleName);
+        File mainDir = mkdir(moduleDir, "main");
         String resourceFilePrefix = randomString();
         String[] resourceFileNames = new String[resourcesContents.length];
         for (int i = 0; i < resourcesContents.length; i++) {
             String content = resourcesContents[i];
             String fileName = resourceFilePrefix + "-" + i;
             resourceFileNames[i] = fileName;
-            createFile(new File(mainDir, fileName), content);
+            File f = touch(mainDir, fileName);
+            dump(f, content);
         }
         createModuleXmlFile(mainDir, moduleName, resourceFileNames);
         return moduleDir;
     }
-
-
-    public static void createFile(File f, String content) throws Exception {
+    
+    public static File touch(File baseDir, String... segments) throws Exception {
+        File f = baseDir;
+        for (String segment : segments) {
+            f = new File(f, segment);
+        }
+        f.getParentFile().mkdirs();
         f.createNewFile();
+        return f;
+    }
+
+    public static void dump(File f, String content) throws Exception {
         final OutputStream os = new FileOutputStream(f);
         try {
             os.write(content.getBytes(Charset.forName("UTF-8")));
@@ -119,8 +125,11 @@ public class TestUtils {
         }
     }
 
-    public static File createDir(File parent, String name) throws Exception {
-        File dir = new File(parent, name);
+    public static File mkdir(File parent, String... segments) throws Exception {
+        File dir = parent;
+        for (String segment : segments) {
+            dir = new File(dir, segment);
+        }
         dir.mkdirs();
         return dir;
     }
@@ -134,13 +143,47 @@ public class TestUtils {
         assertTrue(f + " not found in " + set, set.contains(f));
     }
 
-    static void assertFileExists(File f, boolean isDir) {
-        assertTrue(f + " does not exist", f.exists());
-        if (isDir) {
-            assertTrue(f + " is not a directory", f.isDirectory());
-        } else {
-            assertFalse(f + " is a directory", f.isDirectory());
+    static void assertDirExists(File rootDir, String... segments) {
+        assertFileExists(true, rootDir, segments);
+    }
+    
+    static void assertDirDoesNotExist(File rootDir, String... segments) {
+        assertFileDoesNotExist(true, rootDir, segments);
+    }
+    
+    static void assertFileExists(File rootDir, String... segments) {
+        assertFileExists(false, rootDir, segments);
+    }
+    
+    static void assertFileDoesNotExist(File rootDir, String... segments) {
+        assertFileDoesNotExist(false, rootDir, segments);
+    }
+
+    private static void assertFileExists(boolean isDir, File rootFile, String... segments) {
+        assertTrue(rootFile + " does not exist", rootFile.exists());
+        File f = rootFile;
+        for (String segment : segments) {
+            f = new File(f, segment);
+            assertTrue(f + " does not exist", f.exists());
         }
+        assertEquals(f + " is " + (isDir? "not":"") + " a directory", isDir, f.isDirectory());
+    }
+    
+    private static void assertFileDoesNotExist(boolean isDir, File rootFile, String... segments) {
+        if (segments.length == 0) {
+            assertFalse(rootFile + " exists", rootFile.exists());
+            assertEquals(rootFile + " is " + (isDir? "not":"") + " a directory", isDir, rootFile.isDirectory());
+            return;
+        }
+        
+        File f = rootFile;
+        for (int i = 0; i < segments.length - 1; i++) {
+            String segment = segments[i];
+            f = new File(f, segment);
+            assertTrue(f + " does not exist", f.exists());
+        }
+        f = new File(f, segments[segments.length -1]);
+        assertEquals(f + " is " + (isDir? "not":"") + " a directory", isDir, f.isDirectory());
     }
 
     static void assertDefinedModule(File[] modulesPath, String moduleName, byte[] expectedHash) throws Exception {
@@ -172,7 +215,7 @@ public class TestUtils {
     }
 
     private static void assertDefinedModuleWithRootElement(File moduleXMLFile, String moduleName, String rootElement) throws Exception {
-        assertFileExists(moduleXMLFile, false);
+        assertFileExists(moduleXMLFile);
         assertFileContains(moduleXMLFile,rootElement);
         assertFileContains(moduleXMLFile, format("name=\"%s\"", moduleName));
     }
@@ -198,5 +241,14 @@ public class TestUtils {
         File zipFile = new File(sourceDir.getParent(), zipFileName + ".zip");
         ZipUtils.zip(sourceDir, zipFile);
         return zipFile;
+    }
+
+    static void assertPatchHasBeenApplied(PatchingResult result, Patch patch) {
+        assertFalse("encountered problems: " + result.getProblems(), result.hasFailures());        
+        if (CUMULATIVE == patch.getPatchType()) {
+            assertEquals(patch.getPatchId(), result.getPatchInfo().getCumulativeID());
+        } else {
+            assertTrue(result.getPatchInfo().getPatchIDs().contains(patch.getPatchId()));
+        }
     }
 }
