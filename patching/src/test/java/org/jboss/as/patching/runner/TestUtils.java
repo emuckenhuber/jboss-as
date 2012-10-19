@@ -28,15 +28,24 @@ import static java.util.UUID.randomUUID;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 import static org.jboss.as.patching.PatchLogger.ROOT_LOGGER;
+import static org.jboss.as.patching.generator.PatchUtils.safeClose;
 import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+
+import org.jboss.as.patching.generator.ZipUtils;
+import org.jboss.as.patching.metadata.Patch;
+import org.jboss.as.patching.metadata.PatchXml;
 
 /**
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2012, Red Hat Inc
@@ -47,6 +56,7 @@ public class TestUtils {
         StringBuilder out = new StringBuilder();
         out.append(dir.getParentFile().getAbsolutePath() + "\n");
         tree0(out, dir, 1, "  ");
+        System.out.println(out);
         ROOT_LOGGER.trace(out.toString());
     }
 
@@ -172,4 +182,21 @@ public class TestUtils {
         assertTrue(string + " not found in " + f + " with content=" + content, content.contains(string));
     }
 
+    static void createPatchXMLFile(File dir, Patch patch) throws Exception {
+        File patchXMLfile = new File(dir, "patch.xml");
+        patchXMLfile.createNewFile();
+        FileOutputStream fos = new FileOutputStream(patchXMLfile);
+        try {
+            PatchXml.marshal(fos, patch);
+        } finally {
+            safeClose(fos);
+        }
+    }
+
+    static File createZippedPatchFile(File sourceDir, String zipFileName) {
+        tree(sourceDir);
+        File zipFile = new File(sourceDir.getParent(), zipFileName + ".zip");
+        ZipUtils.zip(sourceDir, zipFile);
+        return zipFile;
+    }
 }
