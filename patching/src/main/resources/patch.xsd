@@ -55,7 +55,7 @@
             </xs:documentation>
         </xs:annotation>
         <xs:sequence>
-            <xs:element name="applies-to-version" type="xs:string" use="required">
+            <xs:element name="applies-to-version" type="xs:string" minOccurs="1" maxOccurs="unbounded">
                 <xs:annotation>
                     <xs:documentation>
                         Identifier of the project or product version to which this patch can be applied.
@@ -71,17 +71,20 @@
                 Cumulative patch release, invalidating all previous one-off patches
             </xs:documentation>
         </xs:annotation>
-        <xs:complexContent>
-            <xs:extension base="patchType">
-                <xs:attribute name="resulting-version" type="xs:string" use="required">
-                    <xs:annotation>
-                        <xs:documentation>
-                            Identifier of the project or product version that will be installed once this patch is applied.
-                        </xs:documentation>
-                    </xs:annotation>
-                </xs:attribute>
-            </xs:extension>
-        </xs:complexContent>
+        <xs:attribute name="applies-to-version" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Identifier of the project or product version to which this patch applies.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="resulting-version" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    Identifier of the project or product version that will be installed once this patch is applied.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="modulesType">
