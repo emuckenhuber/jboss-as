@@ -290,7 +290,7 @@ public class PatchingTaskRunner {
             PatchLogger.ROOT_LOGGER.cannotRollbackPatch(patchId);
             return new FailedResult(patchId, patchInfo);
         }
-        final File patchXml = new File(historyDir, PatchXml.PATCH_XML);
+        final File patchXml = new File(historyDir, PatchingContext.ROLLBACK_XML);
         if(! patchXml.exists()) {
             PatchLogger.ROOT_LOGGER.cannotRollbackPatch(patchId);
             return new FailedResult(patchId, patchInfo);
