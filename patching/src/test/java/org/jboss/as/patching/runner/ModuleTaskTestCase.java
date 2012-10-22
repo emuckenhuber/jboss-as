@@ -87,6 +87,7 @@ public class ModuleTaskTestCase extends AbstractTaskTestCase{
 
         File modulesPatchDir = env.getModulePatchDirectory(patchID);
         assertDirExists(modulesPatchDir);
+        tree(result.getPatchInfo().getEnvironment().getInstalledImage().getJbossHome());
         assertContains(modulesPatchDir, result.getPatchInfo().getModulePath());
         assertDefinedModule(result.getPatchInfo().getModulePath(), moduleName, newHash);
     }
