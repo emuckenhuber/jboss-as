@@ -24,6 +24,7 @@ package org.jboss.as.patching.runner;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static junit.framework.Assert.assertNotSame;
 import static org.jboss.as.patching.metadata.Patch.PatchType.CUMULATIVE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -35,6 +36,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+import junit.framework.Assert;
+
+import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.metadata.ContentItem;
 import org.jboss.as.patching.metadata.Patch;
 
@@ -170,5 +174,16 @@ public class PatchingAssert {
 
         assertDirDoesNotExist(result.getPatchInfo().getEnvironment().getPatchDirectory(patch.getPatchId()));
         assertDirDoesNotExist(result.getPatchInfo().getEnvironment().getHistoryDir(patch.getPatchId()));
+    }
+
+    static void assertPatchHasBeenRolledBack(PatchingResult result, Patch patch, PatchInfo expectedPatchInfo) {
+        assertFalse("encountered problems: " + result.getProblems(), result.hasFailures());
+        assertEquals(expectedPatchInfo.getVersion(), result.getPatchInfo().getVersion());
+        assertEquals(expectedPatchInfo.getCumulativeID(), result.getPatchInfo().getCumulativeID());
+        assertEquals(expectedPatchInfo.getPatchIDs(), result.getPatchInfo().getPatchIDs());
+
+        assertDirDoesNotExist(result.getPatchInfo().getEnvironment().getModulePatchDirectory(patch.getPatchId()));
+        assertDirDoesNotExist(result.getPatchInfo().getEnvironment().getBundlesPatchDirectory(patch.getPatchId()));
+        assertDirDoesNotExist(result.getPatchInfo().getEnvironment().getPatchDirectory(patch.getPatchId()));
     }
 }
