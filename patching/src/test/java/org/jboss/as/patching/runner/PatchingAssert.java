@@ -156,8 +156,11 @@ public class PatchingAssert {
         assertFalse("encountered problems: " + result.getProblems(), result.hasFailures());
         if (CUMULATIVE == patch.getPatchType()) {
             assertEquals(patch.getPatchId(), result.getPatchInfo().getCumulativeID());
+            assertEquals(patch.getResultingVersion(), result.getPatchInfo().getVersion());
         } else {
             assertTrue(result.getPatchInfo().getPatchIDs().contains(patch.getPatchId()));
+            // applied one-off patch is at the top of the patchIDs
+            assertEquals(patch.getPatchId(), result.getPatchInfo().getPatchIDs().get(0));
         }
     }
 
