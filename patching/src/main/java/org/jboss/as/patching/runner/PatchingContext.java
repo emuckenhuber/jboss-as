@@ -56,6 +56,8 @@ import java.util.Map;
  */
 class PatchingContext {
 
+    public static final String ROLLBACK_XML = "rollback.xml";
+
     private final Patch patch;
     private final PatchInfo info;
     private final DirectoryStructure structure;
@@ -293,9 +295,7 @@ class PatchingContext {
 
         // persist the applied patch
         if (!PatchInfo.BASE.equals(patch.getPatchId())) {
-            final File appliedPatchXml = new File(info.getEnvironment().getPatchDirectory(patchId), PatchXml.PATCH_XML);
-            // patch directory is not created if the patch contains only misc content
-            appliedPatchXml.getParentFile().mkdir();
+            final File appliedPatchXml = new File(backup, PatchXml.PATCH_XML);
             try {
                 final OutputStream os = new FileOutputStream(appliedPatchXml);
                 try {
@@ -311,7 +311,7 @@ class PatchingContext {
         }
         // Persist the patch rollback information
         final Patch newPatch = new RollbackPatch();
-        final File patchXml = new File(backup, PatchXml.PATCH_XML);
+        final File patchXml = new File(backup, ROLLBACK_XML);
         try {
             final OutputStream os = new FileOutputStream(patchXml);
             try {
