@@ -72,6 +72,8 @@ class PatchingContext {
     private final Map<String, PatchContentLoader> contentLoaders = new HashMap<String, PatchContentLoader>();
 
     private boolean rollbackOnly;
+    // flag to know whether we are applying a rollback patch
+    private final boolean rollingBackPatch;
 
     /**
      * Create a patching context.
@@ -89,7 +91,7 @@ class PatchingContext {
         if(!backup.mkdirs()) {
             PatchMessages.MESSAGES.cannotCreateDirectory(backup.getAbsolutePath());
         }
-        final PatchingContext context = new PatchingContext(patch, info, structure, backup, policy);
+        final PatchingContext context = new PatchingContext(patch, info, structure, backup, policy, false);
         // Register the patch loader
         final PatchContentLoader loader = PatchContentLoader.create(workDir);
         context.contentLoaders.put(patch.getPatchId(), loader);
@@ -110,11 +112,11 @@ class PatchingContext {
         // backup is just a temp dir
         final File backup = workDir;
         final ContentVerificationPolicy policy = overrideAll ? ContentVerificationPolicy.OVERRIDE_ALL : ContentVerificationPolicy.STRICT;
-        return new PatchingContext(patch, current, structure, backup, policy);
+        return new PatchingContext(patch, current, structure, backup, policy, true);
     }
 
     private PatchingContext(final Patch patch, final PatchInfo info, final DirectoryStructure structure,
-                            final File backup, final ContentVerificationPolicy policy) {
+                            final File backup, final ContentVerificationPolicy policy, boolean rollingBackPatch) {
         this.patch = patch;
         this.info = info;
         this.backup = backup;
@@ -123,6 +125,7 @@ class PatchingContext {
         this.miscBackup = new File(backup, PatchContentLoader.MISC);
         this.configBackup = new File(backup, DirectoryStructure.CONFIGURATION);
         this.target = structure.getInstalledImage().getJbossHome();
+        this.rollingBackPatch = rollingBackPatch;
     }
 
     /**
@@ -274,7 +277,12 @@ class PatchingContext {
         final PatchInfo newInfo;
         if(Patch.PatchType.ONE_OFF == patch.getPatchType()) {
             final List<String> patches = new ArrayList<String>(info.getPatchIDs());
-            patches.add(0, patchId);
+            if (rollingBackPatch) {
+                // the last one-off patch is the one that is rolling back
+                patches.remove(patches.size() - 1);
+            } else {
+                patches.add(0, patchId);
+            }
             final String resultingVersion = info.getVersion();
             newInfo = new LocalPatchInfo(resultingVersion, info.getCumulativeID(), patches, info.getEnvironment());
         } else {
@@ -390,7 +398,7 @@ class PatchingContext {
         // Use the misc backup location for the content items
         final PatchContentLoader loader = new PatchContentLoader(miscBackup, null, null);
         final File backup = null; // We skip the prepare step, so there should be no backup
-        final PatchingContext undoContext = new PatchingContext(patch, info, structure, backup, ContentVerificationPolicy.OVERRIDE_ALL);
+        final PatchingContext undoContext = new PatchingContext(patch, info, structure, backup, ContentVerificationPolicy.OVERRIDE_ALL, false);
 
         for(final ContentModification modification : rollbackActions) {
             final ContentType type = modification.getItem().getContentType();

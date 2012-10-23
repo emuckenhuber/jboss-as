@@ -30,6 +30,7 @@ import org.jboss.as.patching.PatchLogger;
 import org.jboss.as.patching.PatchMessages;
 import org.jboss.as.patching.metadata.ContentItem;
 import org.jboss.as.patching.metadata.Patch;
+import org.jboss.as.patching.metadata.Patch.PatchType;
 import org.jboss.as.patching.metadata.PatchXml;
 
 import javax.xml.stream.XMLStreamException;
@@ -308,16 +309,17 @@ public class PatchingTaskRunner {
                     // TODO perhaps just ignore or warn?
                     throw new PatchingException("inconsistent cumulative version expected: %s, was: %s", patch.getPatchId(), cumulative);
                 }
-                // Check the consistency of the patches history
-                final File cumulativeReferences = structure.getCumulativeRefs(cumulative);
-                final File referencesHistory = new File(historyDir, DirectoryStructure.REFERENCES);
-                final List<String> cumulativePatches = PatchUtils.readRefs(cumulativeReferences);
-                final List<String> historyPatches = PatchUtils.readRefs(referencesHistory);
-                if(! cumulativePatches.equals(historyPatches)) {
-                    // TODO perhaps just ignore or warn?
-                    throw new PatchingException("inconsistent patches for '%s' expected: %s, was: %s", cumulative, historyDir, cumulativePatches);
+                // Check the consistency of the patches history for cumulative patch
+                if (PatchType.CUMULATIVE == patch.getPatchType()) {
+                    final File cumulativeReferences = structure.getCumulativeRefs(cumulative);
+                    final File referencesHistory = new File(historyDir, DirectoryStructure.REFERENCES);
+                    final List<String> cumulativePatches = PatchUtils.readRefs(cumulativeReferences);
+                    final List<String> historyPatches = PatchUtils.readRefs(referencesHistory);
+                    if(! cumulativePatches.equals(historyPatches)) {
+                        // TODO perhaps just ignore or warn?
+                        throw new PatchingException("inconsistent patches for '%s' expected: %s, was: %s", cumulative, historyDir, cumulativePatches);
+                    }
                 }
-
                 // Process potentially multiple rollbacks
                 final PatchingContext context = PatchingContext.createForRollback(patch, patchInfo, structure, overrideAll, workDir);
                 final Map<Location, PatchingTasks.ContentTaskDefinition> definitions = new LinkedHashMap<Location, PatchingTasks.ContentTaskDefinition>();
