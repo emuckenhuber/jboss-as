@@ -325,6 +325,11 @@ class PatchingContext {
             throw new PatchingException(e);
         }
         try {
+            backupConfiguration();
+        } catch (IOException e) {
+            throw new PatchingException(e);
+        }
+        try {
             // Persist
             persist(newInfo);
             // Rollback to the previous info
