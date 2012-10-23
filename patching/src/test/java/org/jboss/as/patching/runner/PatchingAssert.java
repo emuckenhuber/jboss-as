@@ -24,8 +24,10 @@ package org.jboss.as.patching.runner;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static junit.framework.Assert.assertEquals;
 import static org.jboss.as.patching.metadata.Patch.PatchType.CUMULATIVE;
-import static org.junit.Assert.assertEquals;
+import static org.jboss.as.patching.runner.PatchUtils.bytesToHexString;
+import static org.jboss.as.patching.runner.PatchUtils.calculateHash;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -85,6 +87,14 @@ public class PatchingAssert {
             assertTrue(f + " does not exist", f.exists());
         }
         f = new File(f, segments[segments.length -1]);
+    }
+
+    static void assertFileContent(byte[] expected, File f) throws Exception {
+        assertFileContent(null, expected, f);
+    }
+
+    static void assertFileContent(String message, byte[] expected, File f) throws Exception {
+        assertEquals(message, bytesToHexString(expected), bytesToHexString(calculateHash(f)));
     }
 
     static void assertDefinedModule(File[] modulesPath, String moduleName, byte[] expectedHash) throws Exception {
