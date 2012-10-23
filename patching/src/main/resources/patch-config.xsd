@@ -114,25 +114,25 @@
 
     <xs:complexType name="modulesType">
         <xs:sequence>
-            <xs:element name="added-module" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="updated-module" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="removed-module" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="added-module" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="updated-module" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="removed-module" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="bundlesType">
         <xs:sequence>
-            <xs:element name="added-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="updated-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="removed-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="added-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="updated-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="removed-bundle" type="slotted-contentType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="misc-filesType">
         <xs:sequence>
-            <xs:element name="added-misc-content" type="added-misc-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="updated-misc-content" type="updated-misc-contentType" minOccurs="0" maxOccurs="1"/>
-            <xs:element name="removed-misc-content" type="removed-misc-contentType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="added-misc-content" type="added-misc-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="updated-misc-content" type="updated-misc-contentType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="removed-misc-content" type="removed-misc-contentType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
