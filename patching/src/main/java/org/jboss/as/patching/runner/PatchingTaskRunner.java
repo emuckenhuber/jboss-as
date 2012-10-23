@@ -331,9 +331,15 @@ public class PatchingTaskRunner {
                 }
                 // Rollback
                 PatchingResult rollbackResult = executeTasks(patch, definitions, context);
+                // delete all resources associated to the rolled back patches
                 if (!rollbackResult.hasFailures()) {
+                    for(final String rollback : patches) {
+                        recursiveDelete(structure.getPatchDirectory(rollback));
+                        recursiveDelete(structure.getHistoryDir(rollback));
+                    }
                     recursiveDelete(structure.getPatchDirectory(patchId));
                     recursiveDelete(structure.getHistoryDir(patchId));
+                    recursiveDelete(structure.getCumulativeRefs(patchId));
                 }
                 return rollbackResult;
 
