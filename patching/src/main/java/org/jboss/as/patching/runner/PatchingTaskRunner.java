@@ -321,7 +321,7 @@ public class PatchingTaskRunner {
                     }
                 }
                 // Process potentially multiple rollbacks
-                final PatchingContext context = PatchingContext.createForRollback(patch, patchInfo, structure, overrideAll, workDir);
+                final PatchingContext context = PatchingContext.createForRollback(patch, patchInfo, structure, overrideAll, workDir, patchId);
                 final Map<Location, PatchingTasks.ContentTaskDefinition> definitions = new LinkedHashMap<Location, PatchingTasks.ContentTaskDefinition>();
                 for(final String rollback : patches) {
                     try {
