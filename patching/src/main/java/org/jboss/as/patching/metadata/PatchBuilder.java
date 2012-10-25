@@ -27,7 +27,9 @@ import static java.util.Collections.unmodifiableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.jboss.as.patching.metadata.Patch.PatchType;
 
@@ -41,7 +43,9 @@ public class PatchBuilder {
     private String resultingVersion;
     private PatchType patchType;
     private List<String> appliesTo;
-    private List<ContentModification> modifications = new ArrayList<ContentModification>();
+    private final List<ContentModification> modifications = new ArrayList<ContentModification>();
+    private final Map<String, String> moduleSearchPaths = new HashMap<String, String>();
+    private final Map<String, String> bundleSearchPaths = new HashMap<String, String>();
 
     public static PatchBuilder create() {
         return new PatchBuilder();
@@ -82,6 +86,16 @@ public class PatchBuilder {
         return this;
     }
 
+    public PatchBuilder addModuleSearchPath(final String name, final String standardPath) {
+        moduleSearchPaths.put(name, standardPath);
+        return this;
+    }
+
+    public PatchBuilder addBundleSearchPath(final String name, final String standardPath) {
+        bundleSearchPaths.put(name, standardPath);
+        return this;
+    }
+
     public Patch build() {
         return new Patch() {
 
@@ -113,6 +127,16 @@ public class PatchBuilder {
             @Override
             public List<String> getAppliesTo() {
                 return unmodifiableList(appliesTo);
+            }
+
+            @Override
+            public Map<String, String> getModuleSearchPaths() {
+                return Collections.unmodifiableMap(moduleSearchPaths);
+            }
+
+            @Override
+            public Map<String, String> getBundleSearchPaths() {
+                return Collections.unmodifiableMap(bundleSearchPaths);
             }
         };
     }

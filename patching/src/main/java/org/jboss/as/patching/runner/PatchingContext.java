@@ -424,6 +424,16 @@ class PatchingContext {
         }
 
         @Override
+        public Map<String, String> getModuleSearchPaths() {
+            return patch.getModuleSearchPaths();
+        }
+
+        @Override
+        public Map<String, String> getBundleSearchPaths() {
+            return patch.getBundleSearchPaths();
+        }
+
+        @Override
         public List<ContentModification> getModifications() {
             return rollbackActions;
         }
