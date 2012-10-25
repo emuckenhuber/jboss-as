@@ -22,6 +22,9 @@
 
 package org.jboss.as.patching;
 
+import static java.util.Arrays.asList;
+import static org.jboss.as.patching.PatchLogger.ROOT_LOGGER;
+
 import org.jboss.as.boot.DirectoryStructure;
 import org.jboss.as.version.ProductConfig;
 import org.jboss.msc.service.Service;
@@ -32,6 +35,7 @@ import org.jboss.msc.service.StopContext;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
@@ -56,6 +60,7 @@ public final class PatchInfoService implements Service<PatchInfoService> {
     public synchronized void start(StartContext context) throws StartException {
         try {
             this.patchInfo = LocalPatchInfo.load(config, structure);
+            ROOT_LOGGER.usingModulePath(asList(patchInfo.getModulePath()));
         } catch (IOException e) {
             throw new StartException(e);
         }

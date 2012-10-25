@@ -22,6 +22,8 @@
 
 package org.jboss.as.patching;
 
+import java.io.File;
+
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.PathElement;
@@ -59,6 +61,9 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
     static final AttributeDefinition PATCHES = PrimitiveListAttributeDefinition.Builder.of("patches", ModelType.STRING)
             .setStorageRuntime()
             .build();
+    static final AttributeDefinition MODULE_PATH = PrimitiveListAttributeDefinition.Builder.of("module-path", ModelType.STRING)
+            .setStorageRuntime()
+            .build();
 
     static final OperationDefinition PATCH = new SimpleOperationDefinitionBuilder("patch", getResourceDescriptionResolver(PatchResourceDefinition.NAME))
             .build();
@@ -94,6 +99,15 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
                 result.setEmptyList();
                 for(final String id : info.getPatchIDs()) {
                     result.add(id);
+                }
+            }
+        });
+        registry.registerReadOnlyAttribute(MODULE_PATH, new PatchAttributeReadHandler() {
+            @Override
+            void handle(ModelNode result, PatchInfo info) {
+                result.setEmptyList();
+                for(final File id : info.getModulePath()) {
+                    result.add(id.getAbsolutePath());
                 }
             }
         });
