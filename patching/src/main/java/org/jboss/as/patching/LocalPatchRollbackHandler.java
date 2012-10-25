@@ -24,6 +24,7 @@ package org.jboss.as.patching;
 
 import static org.jboss.as.patching.Constants.OVERRIDE_ALL;
 import static org.jboss.as.patching.Constants.PATCH_ID;
+import static org.jboss.as.patching.PatchMessages.MESSAGES;
 
 import org.jboss.as.boot.DirectoryStructure;
 import org.jboss.as.controller.OperationContext;
@@ -46,8 +47,12 @@ public class LocalPatchRollbackHandler implements OperationStepHandler {
         final String patchId = PATCH_ID.resolveModelAttribute(context, operation).asString();
         final boolean overrideAll = OVERRIDE_ALL.resolveModelAttribute(context, operation).asBoolean();
 
+        // FIXME can we check whether the process is reload-required directly from the operation context?
         context.acquireControllerLock();
         final PatchInfoService service = (PatchInfoService) context.getServiceRegistry(false).getRequiredService(PatchInfoService.NAME).getValue();
+        if (service.requiresReload()) {
+            throw MESSAGES.serverRequiresReload();
+        }
 
         final PatchInfo info = service.getPatchInfo();
         final DirectoryStructure structure = service.getStructure();
@@ -67,6 +72,7 @@ public class LocalPatchRollbackHandler implements OperationStepHandler {
                 public void handleResult(OperationContext.ResultAction resultAction, OperationContext context, ModelNode operation) {
                     if(resultAction == OperationContext.ResultAction.KEEP) {
                         result.commit();
+                        service.reloadRequired();
                         context.reloadRequired();
                     } else {
                         result.rollback();
