@@ -70,9 +70,9 @@ abstract class AbstractModuleTask extends AbstractPatchingTask<ModuleItem> {
     static ModuleItem createContentItem(final ModuleItem original, final byte[] contentHash) {
         final ContentType type = original.getContentType();
         if(type == ContentType.BUNDLE) {
-            return new BundleItem(original.getName(), original.getSlot(), contentHash);
+            return new BundleItem(original.getName(), original.getSlot(), original.getSearchPath(), contentHash);
         } else {
-            return new ModuleItem(original.getName(), original.getSlot(), contentHash);
+            return new ModuleItem(original.getName(), original.getSlot(), original.getSearchPath(), contentHash);
         }
     }
 
