@@ -63,10 +63,12 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         ADDED_MODULE("added-module"),
         APPLIES_TO_VERSION("applies-to-version"),
         BUNDLES("bundles"),
+        BUNDLE_SEARCH_PATH("bundle-search-path"),
         CUMULATIVE("cumulative"),
         DESCRIPTION("description"),
         MISC_FILES("misc-files"),
         MODULES("modules"),
+        MODULE_SEARCH_PATH("module-search-path"),
         NAME("name"),
         ONE_OFF("one-off"),
         PATCH("patch"),
@@ -113,11 +115,12 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         NAME("name"),
         PATH("path"),
         RESULTING_VERSION("resulting-version"),
+        SEARCH_PATH("search-path"),
         SLOT("slot"),
+        STANDARD_PATH("standard-path"),
 
         // default unknown attribute
-        UNKNOWN(null),
-        ;
+        UNKNOWN(null);
 
         private final String name;
         Attribute(String name) {
@@ -233,6 +236,7 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                 !modulesUpdate.isEmpty() ||
                 !modulesRemove.isEmpty()) {
             writer.writeStartElement(Element.MODULES.name);
+            writeSlottedContentRoots(writer, Element.MODULE_SEARCH_PATH, patch.getModuleSearchPaths());
             writeSlottedItems(writer, Element.ADDED_MODULE, modulesAdd);
             writeSlottedItems(writer, Element.UPDATED_MODULE, modulesUpdate);
             writeSlottedItems(writer, Element.REMOVED_MODULE, modulesRemove);
@@ -244,6 +248,7 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                 !bundlesUpdate.isEmpty() ||
                 !bundlesRemove.isEmpty()) {
             writer.writeStartElement(Element.BUNDLES.name);
+            writeSlottedContentRoots(writer, Element.BUNDLE_SEARCH_PATH, patch.getBundleSearchPaths());
             writeSlottedItems(writer, Element.ADDED_BUNDLE, bundlesAdd);
             writeSlottedItems(writer, Element.UPDATED_BUNDLE, bundlesUpdate);
             writeSlottedItems(writer, Element.REMOVED_BUNDLE, bundlesRemove);
@@ -358,6 +363,9 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
             final Element element = Element.forName(reader.getLocalName());
             switch (element) {
+                case MODULE_SEARCH_PATH:
+                    parseSlottedContentSearchPath(reader, builder, false);
+                    break;
                 case ADDED_MODULE:
                     builder.addContentModification(parseModuleModification(reader, ModificationType.ADD));
                     break;
@@ -370,6 +378,40 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                 default:
                     throw unexpectedElement(reader);
             }
+        }
+    }
+
+    static void parseSlottedContentSearchPath(XMLExtendedStreamReader reader, PatchBuilder builder, boolean bundle) throws XMLStreamException {
+        String name = null;
+        String standardPath = null;
+        Set<Attribute> required = EnumSet.of(Attribute.NAME, Attribute.STANDARD_PATH);
+
+        final int count = reader.getAttributeCount();
+        for (int i = 0; i < count; i++) {
+            final String value = reader.getAttributeValue(i);
+            final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
+            required.remove(attribute);
+            switch (attribute) {
+                case NAME:
+                    name = value;
+                    break;
+                case STANDARD_PATH:
+                    standardPath = value;
+                    break;
+                default:
+                    throw unexpectedAttribute(reader, i);
+            }
+        }
+        requireNoContent(reader);
+
+        if (!required.isEmpty()) {
+            throw missingRequired(reader, required);
+        }
+
+        if (bundle) {
+            builder.addBundleSearchPath(name, standardPath);
+        } else {
+            builder.addModuleSearchPath(name, standardPath);
         }
     }
 
@@ -396,6 +438,9 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
             final Element element = Element.forName(reader.getLocalName());
             switch (element) {
+                case BUNDLE_SEARCH_PATH:
+                    parseSlottedContentSearchPath(reader, builder, true);
+                    break;
                 case ADDED_BUNDLE:
                     builder.addContentModification(parseBundleModification(reader, ModificationType.ADD));
                     break;
@@ -423,6 +468,7 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
 
         String moduleName = null;
         String slot = "main";
+        String searchPath = null;
         byte[] hash = NO_CONTENT;
         byte[] targetHash = NO_CONTENT;
 
@@ -437,6 +483,9 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                 case SLOT:
                     slot = value;
                     break;
+                case SEARCH_PATH:
+                    searchPath = value;
+                    break;
                 case HASH:
                     hash = hexStringToByteArray(value);
                     break;
@@ -444,12 +493,12 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                     targetHash = hexStringToByteArray(value);
                     break;
                 default:
-                    throw unexpectedElement(reader);
+                    throw unexpectedAttribute(reader, i);
             }
         }
         requireNoContent(reader);
 
-        final ModuleItem item = contentType == ContentType.MODULE ? new ModuleItem(moduleName, slot, hash) : new BundleItem(moduleName, slot, hash);
+        final ModuleItem item = contentType == ContentType.MODULE ? new ModuleItem(moduleName, slot, searchPath, hash) : new BundleItem(moduleName, slot, searchPath, hash);
         return new ContentModification(item, targetHash, modificationType);
     }
 
@@ -482,7 +531,7 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
                     affectsRuntime = Boolean.parseBoolean(value);
                     break;
                 default:
-                    throw unexpectedElement(reader);
+                    throw unexpectedAttribute(reader, i);
             }
         }
         requireNoContent(reader);
@@ -505,6 +554,14 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         }
     }
 
+    protected void writeSlottedContentRoots(final XMLExtendedStreamWriter writer, final Element element, final Map<String, String> roots) throws XMLStreamException {
+        for (Map.Entry<String, String> entry : roots.entrySet()) {
+            writer.writeEmptyElement(element.name);
+            writer.writeAttribute(Attribute.NAME.name, entry.getKey());
+            writer.writeAttribute(Attribute.STANDARD_PATH.name, entry.getValue());
+        }
+    }
+
     protected void writeSlottedItems(final XMLExtendedStreamWriter writer, final Element element, final List<ContentModification> modifications) throws XMLStreamException {
         for(final ContentModification modification : modifications) {
             writeSlottedItem(writer, element, modification);
@@ -521,6 +578,9 @@ class PatchXml_1_0 implements XMLStreamConstants, XMLElementReader<PatchBuilder>
         writer.writeAttribute(Attribute.NAME.name, item.getName());
         if (!MAIN_SLOT.equals(item.getSlot())) {
             writer.writeAttribute(Attribute.SLOT.name, item.getSlot());
+        }
+        if (item.getSearchPath() != null) {
+            writer.writeAttribute(Attribute.SEARCH_PATH.name, item.getSearchPath());
         }
         if(type != ModificationType.REMOVE) {
             byte[] hash = item.getContentHash();

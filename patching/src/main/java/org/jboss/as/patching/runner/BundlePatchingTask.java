@@ -89,7 +89,7 @@ class BundlePatchingTask extends AbstractPatchingTask<BundleItem> {
 
     @Override
     ContentModification createRollbackEntry(ContentModification original, byte[] targetHash, byte[] itemHash) {
-        final BundleItem item = new BundleItem(contentItem.getName(), contentItem.getSlot(), itemHash);
+        final BundleItem item = new BundleItem(contentItem.getName(), contentItem.getSlot(), contentItem.getSearchPath(), itemHash);
         switch (original.getType()) {
             case ADD:
                 return new ContentModification(item, targetHash, ModificationType.REMOVE);
