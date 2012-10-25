@@ -25,6 +25,10 @@ package org.jboss.as.patching;
 import static java.util.Arrays.asList;
 import static org.jboss.as.patching.PatchLogger.ROOT_LOGGER;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.jboss.as.boot.DirectoryStructure;
 import org.jboss.as.version.ProductConfig;
 import org.jboss.msc.service.Service;
@@ -32,11 +36,6 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * @author Emanuel Muckenhuber
@@ -49,7 +48,12 @@ public final class PatchInfoService implements Service<PatchInfoService> {
     private final DirectoryStructure structure;
     private volatile PatchInfo patchInfo;
 
-    private static final AtomicReferenceFieldUpdater<PatchInfoService, PatchInfo> updater = AtomicReferenceFieldUpdater.newUpdater(PatchInfoService.class, PatchInfo.class, "patchInfo");
+    /**
+     * this field is set to true when a patch is applied/rolled back at runtime.
+     * It prevents another patch to be applied and overrides the modifications brought by the previous one
+     * unless the process is reloaded first
+     */
+    private final AtomicBoolean reloadRequired = new AtomicBoolean(false);
 
     public PatchInfoService(final ProductConfig config, final File jbossHome) {
         this.config = config;
@@ -84,8 +88,12 @@ public final class PatchInfoService implements Service<PatchInfoService> {
         return patchInfo;
     }
 
-    boolean setPatchInfo(final PatchInfo oldInfo, final PatchInfo newInfo) {
-        return updater.compareAndSet(this, oldInfo, newInfo);
+    public void reloadRequired() {
+        reloadRequired.set(true);
+    }
+
+    public boolean requiresReload() {
+        return reloadRequired.get();
     }
 
 }
