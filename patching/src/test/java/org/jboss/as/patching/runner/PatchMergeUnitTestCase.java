@@ -201,6 +201,16 @@ public class PatchMergeUnitTestCase {
             }
 
             @Override
+            public Map<String, String> getModuleSearchPaths() {
+                return Collections.emptyMap();
+            }
+
+            @Override
+            public Map<String, String> getBundleSearchPaths() {
+                return Collections.emptyMap();
+            }
+
+            @Override
             public List<ContentModification> getModifications() {
                 return Arrays.asList(item);
             }
