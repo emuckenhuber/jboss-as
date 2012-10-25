@@ -22,6 +22,9 @@
 
 package org.jboss.as.patching;
 
+import static org.jboss.as.patching.Constants.OVERRIDE_ALL;
+import static org.jboss.as.patching.Constants.PATCH_ID;
+
 import java.io.File;
 
 import org.jboss.as.controller.AttributeDefinition;
@@ -66,6 +69,11 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
             .build();
 
     static final OperationDefinition PATCH = new SimpleOperationDefinitionBuilder("patch", getResourceDescriptionResolver(PatchResourceDefinition.NAME))
+            .build();
+
+    static final OperationDefinition ROLLBACK = new SimpleOperationDefinitionBuilder("rollback", getResourceDescriptionResolver(PatchResourceDefinition.NAME))
+            .addParameter(PATCH_ID)
+            .addParameter(OVERRIDE_ALL)
             .build();
 
     static final OperationDefinition SHOW_HISTORY = new SimpleOperationDefinitionBuilder("show-history", getResourceDescriptionResolver(PatchResourceDefinition.NAME))
@@ -117,6 +125,7 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration registry) {
         super.registerOperations(registry);
 
+        registry.registerOperationHandler(ROLLBACK, LocalPatchRollbackHandler.INSTANCE);
         registry.registerOperationHandler(PATCH, LocalPatchOperationStepHandler.INSTANCE);
         registry.registerOperationHandler(SHOW_HISTORY, LocalShowHistoryHandler.INSTANCE);
     }
