@@ -76,7 +76,6 @@ import org.jboss.as.controller.services.path.PathResourceDefinition;
 import org.jboss.as.domain.management.connections.ldap.LdapConnectionResourceDefinition;
 import org.jboss.as.domain.management.security.SecurityRealmResourceDefinition;
 import org.jboss.as.domain.management.security.WhoAmIOperation;
-import org.jboss.as.patching.PatchResourceDefinition;
 import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.DeployerChainAddHandler;
@@ -355,9 +354,6 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
 
         resourceRegistration.registerSubModel(new ModuleLoadingResourceDefinition());
 
-        // Patches
-        resourceRegistration.registerSubModel(PatchResourceDefinition.INSTANCE);
-
         // Platform MBeans
         PlatformMBeanResourceRegistrar.registerPlatformMBeanResources(resourceRegistration);
 
@@ -400,6 +396,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
 
         // Util
         resourceRegistration.registerOperationHandler(DeployerChainAddHandler.DEFINITION, DeployerChainAddHandler.INSTANCE, false);
+
     }
 
     private static final OperationStepHandler NOOP = NoopOperationStepHandler.WITH_RESULT;
