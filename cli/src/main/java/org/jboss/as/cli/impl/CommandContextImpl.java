@@ -42,6 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 
 import javax.net.ssl.KeyManager;
@@ -68,6 +69,7 @@ import org.jboss.as.cli.CommandCompleter;
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.CommandHandler;
+import org.jboss.as.cli.CommandHandlerProvider;
 import org.jboss.as.cli.CommandHistory;
 import org.jboss.as.cli.CommandLineCompleter;
 import org.jboss.as.cli.CommandLineException;
@@ -93,7 +95,6 @@ import org.jboss.as.cli.handlers.HelpHandler;
 import org.jboss.as.cli.handlers.HistoryHandler;
 import org.jboss.as.cli.handlers.LsHandler;
 import org.jboss.as.cli.handlers.OperationRequestHandler;
-import org.jboss.as.cli.handlers.PatchHandler;
 import org.jboss.as.cli.handlers.PrefixHandler;
 import org.jboss.as.cli.handlers.PrintWorkingNodeHandler;
 import org.jboss.as.cli.handlers.QuitHandler;
@@ -378,10 +379,6 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
         cmdRegistry.registerHandler(new DeploymentInfoHandler(this), "deployment-info");
         cmdRegistry.registerHandler(new DeploymentOverlayHandler(this), "deployment-overlay");
 
-        // FIXME should be loaded dynamically from the patching module
-        // patching
-        cmdRegistry.registerHandler(new PatchHandler(this), "patch");
-
         // batch commands
         cmdRegistry.registerHandler(new BatchHandler(this), "batch");
         cmdRegistry.registerHandler(new BatchDiscardHandler(), "discard-batch");
@@ -434,6 +431,15 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
 
         // supported but hidden from tab-completion until stable implementation
         cmdRegistry.registerHandler(new ArchiveHandler(this), false, "archive");
+
+        registerExtraHandlers();
+    }
+
+    private void registerExtraHandlers() {
+        ServiceLoader<CommandHandlerProvider> loader = ServiceLoader.load(CommandHandlerProvider.class);
+        for (CommandHandlerProvider provider : loader) {
+            cmdRegistry.registerHandler(provider.createCommandHandler(this), provider.getNames());
+        }
     }
 
     public int getExitCode() {
