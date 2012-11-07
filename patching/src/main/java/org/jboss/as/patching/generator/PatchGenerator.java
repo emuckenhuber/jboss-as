@@ -474,7 +474,7 @@ public class PatchGenerator {
         DistributionContentItem oldModuleRoot = getModuleRoot(removedPath);
         DistributionContentItem newModuleRoot = newStructure.getCurrentVersionPath(oldModuleRoot, oldStructure);
         if (!moduleUpdates.containsKey(newModuleRoot)) {
-            File newModuleRootFile = newModuleRoot.getFile(oldRoot);
+            File newModuleRootFile = newModuleRoot.getFile(newRoot);
             byte[] newItemHash = getHash(newModuleRootFile);
 
             ModuleItem mi = new ModuleItem(newStructure.getModuleName(newModuleRoot), newStructure.getModuleSlot(newModuleRoot), newItemHash);
