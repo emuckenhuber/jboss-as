@@ -33,7 +33,9 @@ import org.jboss.as.cli.handlers.BaseOperationCommand;
 import org.jboss.as.cli.handlers.DefaultFilenameTabCompleter;
 import org.jboss.as.cli.handlers.FilenameTabCompleter;
 import org.jboss.as.cli.handlers.WindowsFilenameTabCompleter;
+import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
+import org.jboss.as.cli.impl.DefaultCompleter;
 import org.jboss.as.cli.impl.FileSystemPathArgument;
 import org.jboss.as.cli.operation.OperationFormatException;
 import org.jboss.as.cli.operation.ParsedCommandLine;
@@ -47,22 +49,37 @@ import org.jboss.dmr.ModelNode;
  */
 public class PatchHandler extends BaseOperationCommand {
 
+    static final String PATCH = "patch";
+    private static final String PATCHING = "patching";
+
     private final ArgumentWithoutValue path;
+    private final ArgumentWithValue host;
 
     public PatchHandler(final CommandContext context) {
-        super(context, "patch", true);
+        super(context, PATCH, true);
 
         final FilenameTabCompleter pathCompleter = Util.isWindows() ? new WindowsFilenameTabCompleter(context) : new DefaultFilenameTabCompleter(context);
         path = new FileSystemPathArgument(this, pathCompleter, 0, "--path");
+        host = new ArgumentWithValue(this, new DefaultCompleter(CandidatesProviders.HOSTS), "--host") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                return ctx.isDomainMode() && super.canAppearNext(ctx);
+            }
+        };
     }
 
     @Override
     protected ModelNode buildRequestWithoutHeaders(final CommandContext ctx) throws CommandFormatException {
 
+        final ModelNode address = new ModelNode();
+        if (ctx.isDomainMode()) {
+            address.get(Util.HOST).set(host.getValue(ctx.getParsedCommandLine(), true));
+        }
+        address.get(Util.CORE_SERVICE).set(PATCHING);
 
         final ModelNode request = new ModelNode();
-        request.get(Util.OPERATION).set("patch");
-        request.get(Util.ADDRESS).add("core-service", "patching");
+        request.get(Util.ADDRESS).set(address);
+        request.get(Util.OPERATION).set(PATCH);
         return request;
     }
 
