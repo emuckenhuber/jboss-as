@@ -38,7 +38,7 @@ public class PatchHandlerProvider implements CommandHandlerProvider {
 
     @Override
     public String[] getNames() {
-        return new String[] { "patch" };
+        return new String[] { PatchHandler.PATCH };
     }
 
 }
