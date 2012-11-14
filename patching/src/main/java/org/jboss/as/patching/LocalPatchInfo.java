@@ -147,7 +147,7 @@ public class LocalPatchInfo implements PatchInfo {
         for(final String patch : patches) {
             path.add(environment.getModulePatchDirectory(patch));
         }
-        if(cumulativeId != BASE) {
+        if(!BASE.equals(cumulativeId)) {
             path.add(environment.getModulePatchDirectory(cumulativeId));
         }
         return path;
@@ -159,7 +159,7 @@ public class LocalPatchInfo implements PatchInfo {
         for(final String patch : patches) {
             path.add(environment.getBundlesPatchDirectory(patch));
         }
-        if(cumulativeId != BASE) {
+        if(!BASE.equals(cumulativeId)) {
             path.add(environment.getBundlesPatchDirectory(cumulativeId));
         }
         final String bundleDir = System.getProperty(BUNDLES_DIR);
