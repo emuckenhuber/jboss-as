@@ -23,7 +23,6 @@
 package org.jboss.as.patching;
 
 import java.io.BufferedInputStream;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -36,12 +35,13 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
+ * @author Emanuel Muckenhuber
+ * @author Brian Stansberry (c) 2012 Red Hat Inc.
  * @author <a href="http://jmesnil/net/">Jeff Mesnil</a> (c) 2012 Red Hat Inc
  */
 public class HashUtils {
 
     private static final char[] TABLE = "0123456789abcdef".toCharArray();
-    static final int DEFAULT_BUFFER_SIZE = 65536;
 
     private static final MessageDigest DIGEST;
     static {
@@ -83,7 +83,7 @@ public class HashUtils {
                     digest.update(bytes, 0, read);
                 }
             } finally {
-                safeClose(fis);
+                IoUtils.safeClose(fis);
             }
 
         }
@@ -95,92 +95,10 @@ public class HashUtils {
             DIGEST.reset();
             BufferedInputStream bis = new BufferedInputStream(is);
             DigestOutputStream dos = new DigestOutputStream(os, DIGEST);
-            copyStream(bis, dos);
+            IoUtils.copyStream(bis, dos);
             sha1Bytes = DIGEST.digest();
         }
         return sha1Bytes;
-    }
-
-    /**
-     * Copy input stream to output stream and close them both
-     *
-     * @param is input stream
-     * @param os output stream
-     *
-     * @throws IOException for any error
-     */
-    public static void copyStreamAndClose(InputStream is, OutputStream os) throws IOException {
-        copyStreamAndClose(is, os, DEFAULT_BUFFER_SIZE);
-    }
-
-    /**
-     * Copy input stream to output stream and close them both
-     *
-     * @param is input stream
-     * @param os output stream
-     * @param bufferSize the buffer size to use
-     *
-     * @throws IOException for any error
-     */
-    public static void copyStreamAndClose(InputStream is, OutputStream os, int bufferSize)
-            throws IOException {
-        try {
-            copyStream(is, os, bufferSize);
-            // throw an exception if the close fails since some data might be lost
-            is.close();
-            os.close();
-        }
-        finally {
-            // ...but still guarantee that they're both closed
-            safeClose(is);
-            safeClose(os);
-        }
-    }
-
-    /**
-     * Copy input stream to output stream without closing streams. Flushes output stream when done.
-     *
-     * @param is input stream
-     * @param os output stream
-     *
-     * @throws IOException for any error
-     */
-    public static void copyStream(InputStream is, OutputStream os) throws IOException {
-        copyStream(is, os, DEFAULT_BUFFER_SIZE);
-    }
-
-    /**
-     * Copy input stream to output stream without closing streams. Flushes output stream when done.
-     *
-     * @param is input stream
-     * @param os output stream
-     * @param bufferSize the buffer size to use
-     *
-     * @throws IOException for any error
-     */
-    public static void copyStream(InputStream is, OutputStream os, int bufferSize)
-            throws IOException {
-        if (is == null) {
-            throw new IllegalArgumentException("input stream is null");
-        }
-        if (os == null) {
-            throw new IllegalArgumentException("output stream is null");
-        }
-        byte[] buff = new byte[bufferSize];
-        int rc;
-        while ((rc = is.read(buff)) != -1) os.write(buff, 0, rc);
-        os.flush();
-    }
-
-
-    public static void safeClose(final Closeable closeable) {
-        if(closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException e) {
-                //
-            }
-        }
     }
 
     /**

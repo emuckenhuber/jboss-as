@@ -23,6 +23,7 @@
 package org.jboss.as.patching.runner;
 
 import static org.jboss.as.patching.HashUtils.hashFile;
+import static org.jboss.as.patching.IoUtils.NO_CONTENT;
 import static org.jboss.as.patching.metadata.ModificationType.ADD;
 import static org.jboss.as.patching.metadata.ModificationType.MODIFY;
 import static org.jboss.as.patching.metadata.ModificationType.REMOVE;
@@ -31,7 +32,6 @@ import static org.jboss.as.patching.runner.PatchingAssert.assertDefinedAbsentBun
 import static org.jboss.as.patching.runner.PatchingAssert.assertDefinedBundle;
 import static org.jboss.as.patching.runner.PatchingAssert.assertDirExists;
 import static org.jboss.as.patching.runner.PatchingAssert.assertPatchHasBeenApplied;
-import static org.jboss.as.patching.runner.PatchingTask.NO_CONTENT;
 import static org.jboss.as.patching.runner.TestUtils.createBundle;
 import static org.jboss.as.patching.runner.TestUtils.createPatchXMLFile;
 import static org.jboss.as.patching.runner.TestUtils.createZippedPatchFile;
