@@ -24,7 +24,7 @@ package org.jboss.as.patching.runner;
 
 import static junit.framework.Assert.assertEquals;
 import static org.jboss.as.patching.metadata.ModificationType.ADD;
-import static org.jboss.as.patching.runner.PatchUtils.bytesToHexString;
+import static org.jboss.as.patching.HashUtils.bytesToHexString;
 import static org.jboss.as.patching.runner.PatchUtils.calculateHash;
 import static org.jboss.as.patching.runner.PatchingAssert.assertFileContent;
 import static org.jboss.as.patching.runner.PatchingAssert.assertFileExists;
