@@ -22,6 +22,8 @@
 
 package org.jboss.as.patching.runner;
 
+import static org.jboss.as.patching.IoUtils.NO_CONTENT;
+
 import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.PatchLogger;
