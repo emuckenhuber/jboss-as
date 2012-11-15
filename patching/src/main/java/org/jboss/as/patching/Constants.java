@@ -22,12 +22,6 @@
 
 package org.jboss.as.patching;
 
-import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.PrimitiveListAttributeDefinition;
-import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.dmr.ModelNode;
-import org.jboss.dmr.ModelType;
-
 /**
  * @author Emanuel Muckenhuber
  */
