@@ -27,7 +27,7 @@ import static java.util.Arrays.asList;
 import static junit.framework.Assert.assertEquals;
 import org.jboss.as.boot.DirectoryStructure;
 import static org.jboss.as.patching.metadata.Patch.PatchType.CUMULATIVE;
-import static org.jboss.as.patching.runner.PatchUtils.bytesToHexString;
+import static org.jboss.as.patching.HashUtils.bytesToHexString;
 import static org.jboss.as.patching.runner.PatchUtils.calculateHash;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

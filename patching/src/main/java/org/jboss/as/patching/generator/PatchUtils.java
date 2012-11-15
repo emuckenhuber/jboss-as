@@ -47,8 +47,6 @@ public class PatchUtils {
 
     public static final byte[] NO_CONTENT = new byte[0];
 
-    private static final char[] table = "0123456789abcdef".toCharArray();
-
     private static final int DEFAULT_BUFFER_SIZE = 65536;
 
     public static byte[] hashFile(File file, MessageDigest digest) throws IOException {
@@ -87,39 +85,6 @@ public class PatchUtils {
             }
 
         }
-    }
-
-    /**
-     * Convert a byte array into a hex string.
-     *
-     * @param bytes the bytes
-     * @return the string
-     */
-    public static String bytesToHexString(final byte[] bytes) {
-        final StringBuilder builder = new StringBuilder(bytes.length * 2);
-        for (byte b : bytes) {
-            builder.append(table[b >> 4 & 0x0f]).append(table[b & 0x0f]);
-        }
-        return builder.toString();
-    }
-
-    /**
-     * Convert a hex string into a byte[].
-     *
-     * @param s the string
-     * @return the bytes
-     */
-    public static byte[] hexStringToByteArray(String s) {
-        int len = s.length();
-        byte[] data = new byte[len >> 1];
-        for (int i = 0, j = 0; j < len; i++) {
-            int x = Character.digit(s.charAt(j), 16) << 4;
-            j++;
-            x = x | Character.digit(s.charAt(j), 16);
-            j++;
-            data[i] = (byte) (x & 0xFF);
-        }
-        return data;
     }
 
     public static void copyFile(File sourceFile, File targetFile) throws IOException {
