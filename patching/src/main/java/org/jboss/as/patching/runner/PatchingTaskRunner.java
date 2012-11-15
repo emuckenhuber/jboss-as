@@ -25,6 +25,7 @@ package org.jboss.as.patching.runner;
 import static org.jboss.as.patching.runner.PatchUtils.recursiveDelete;
 
 import org.jboss.as.boot.DirectoryStructure;
+import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.PatchLogger;
 import org.jboss.as.patching.PatchMessages;
@@ -83,7 +84,7 @@ public class PatchingTaskRunner {
             try {
                 // Cache the content first
                 os = new FileOutputStream(cachedContent);
-                PatchUtils.copyStream(content, os);
+                HashUtils.copyStream(content, os);
                 os.close();
             } finally {
                 PatchUtils.safeClose(os);
@@ -394,7 +395,7 @@ public class PatchingTaskRunner {
                 try {
                     final FileOutputStream eos = new FileOutputStream(current);
                     try {
-                        PatchUtils.copyStream(eis, eos);
+                        HashUtils.copyStream(eis, eos);
                         eis.close();
                         eos.close();
                     } finally {

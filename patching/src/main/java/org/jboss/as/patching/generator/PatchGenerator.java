@@ -30,8 +30,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -43,6 +41,7 @@ import java.util.TreeMap;
 
 import javax.xml.stream.XMLStreamException;
 
+import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchMessages;
 import org.jboss.as.patching.metadata.BundleItem;
 import org.jboss.as.patching.metadata.ContentModification;
@@ -92,7 +91,6 @@ public class PatchGenerator {
     private final Map<DistributionContentItem, ContentModification> miscAdds = new TreeMap<DistributionContentItem, ContentModification>();
     private final Map<DistributionContentItem, ContentModification> miscUpdates = new TreeMap<DistributionContentItem, ContentModification>();
     private final Map<DistributionContentItem, ContentModification> miscRemoves = new TreeMap<DistributionContentItem, ContentModification>();
-    private final MessageDigest messageDigest;
     private File tmp;
 
     private PatchGenerator(File patchConfig, File oldRoot, File newRoot, File patchFile) {
@@ -100,12 +98,6 @@ public class PatchGenerator {
         this.oldRoot = oldRoot;
         this.newRoot = newRoot;
         this.patchFile = patchFile;
-
-        try {
-            this.messageDigest = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Cannot obtain SHA-1 MessageDigest");
-        }
     }
 
     private void process() throws IOException, XMLStreamException {
@@ -536,7 +528,7 @@ public class PatchGenerator {
 
     private byte[] getHash(File file) throws IOException {
 //        try {
-            return PatchUtils.hashFile(file, messageDigest);
+            return HashUtils.hashFile(file);
 //        } catch (Exception e) {
 //            throw new RuntimeException("Failed to hash file " + file.getAbsolutePath(), e);
 //        }

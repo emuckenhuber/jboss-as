@@ -22,12 +22,166 @@
 
 package org.jboss.as.patching;
 
+import java.io.BufferedInputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.TreeMap;
+
 /**
  * @author <a href="http://jmesnil/net/">Jeff Mesnil</a> (c) 2012 Red Hat Inc
  */
 public class HashUtils {
 
     private static final char[] TABLE = "0123456789abcdef".toCharArray();
+    static final int DEFAULT_BUFFER_SIZE = 65536;
+
+    private static final MessageDigest DIGEST;
+    static {
+        try {
+            DIGEST = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] hashFile(File file) throws IOException {
+        synchronized (DIGEST) {
+            DIGEST.reset();
+            updateDigest(DIGEST, file);
+            return DIGEST.digest();
+        }
+    }
+
+    private static void updateDigest(MessageDigest digest, File file) throws IOException {
+        if (file.isDirectory()) {
+            File[] childList = file.listFiles();
+            if (childList != null) {
+                Map<String, File> sortedChildren = new TreeMap<String, File>();
+                for (File child : childList) {
+                    sortedChildren.put(child.getName(), child);
+                }
+                for (File child : sortedChildren.values()) {
+                    updateDigest(digest, child);
+                }
+            }
+        } else {
+            FileInputStream fis = new FileInputStream(file);
+            try {
+
+                BufferedInputStream bis = new BufferedInputStream(fis);
+                byte[] bytes = new byte[8192];
+                int read;
+                while ((read = bis.read(bytes)) > -1) {
+                    digest.update(bytes, 0, read);
+                }
+            } finally {
+                safeClose(fis);
+            }
+
+        }
+    }
+
+    public static byte[] copyAndGetHash(final InputStream is, final OutputStream os) throws IOException {
+        byte[] sha1Bytes;
+        synchronized (DIGEST) {
+            DIGEST.reset();
+            BufferedInputStream bis = new BufferedInputStream(is);
+            DigestOutputStream dos = new DigestOutputStream(os, DIGEST);
+            copyStream(bis, dos);
+            sha1Bytes = DIGEST.digest();
+        }
+        return sha1Bytes;
+    }
+
+    /**
+     * Copy input stream to output stream and close them both
+     *
+     * @param is input stream
+     * @param os output stream
+     *
+     * @throws IOException for any error
+     */
+    public static void copyStreamAndClose(InputStream is, OutputStream os) throws IOException {
+        copyStreamAndClose(is, os, DEFAULT_BUFFER_SIZE);
+    }
+
+    /**
+     * Copy input stream to output stream and close them both
+     *
+     * @param is input stream
+     * @param os output stream
+     * @param bufferSize the buffer size to use
+     *
+     * @throws IOException for any error
+     */
+    public static void copyStreamAndClose(InputStream is, OutputStream os, int bufferSize)
+            throws IOException {
+        try {
+            copyStream(is, os, bufferSize);
+            // throw an exception if the close fails since some data might be lost
+            is.close();
+            os.close();
+        }
+        finally {
+            // ...but still guarantee that they're both closed
+            safeClose(is);
+            safeClose(os);
+        }
+    }
+
+    /**
+     * Copy input stream to output stream without closing streams. Flushes output stream when done.
+     *
+     * @param is input stream
+     * @param os output stream
+     *
+     * @throws IOException for any error
+     */
+    public static void copyStream(InputStream is, OutputStream os) throws IOException {
+        copyStream(is, os, DEFAULT_BUFFER_SIZE);
+    }
+
+    /**
+     * Copy input stream to output stream without closing streams. Flushes output stream when done.
+     *
+     * @param is input stream
+     * @param os output stream
+     * @param bufferSize the buffer size to use
+     *
+     * @throws IOException for any error
+     */
+    public static void copyStream(InputStream is, OutputStream os, int bufferSize)
+            throws IOException {
+        if (is == null) {
+            throw new IllegalArgumentException("input stream is null");
+        }
+        if (os == null) {
+            throw new IllegalArgumentException("output stream is null");
+        }
+        byte[] buff = new byte[bufferSize];
+        int rc;
+        while ((rc = is.read(buff)) != -1) os.write(buff, 0, rc);
+        os.flush();
+    }
+
+
+    public static void safeClose(final Closeable closeable) {
+        if(closeable != null) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                //
+            }
+        }
+    }
 
     /**
      * Convert a byte array into a hex string.

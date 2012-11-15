@@ -22,11 +22,11 @@
 
 package org.jboss.as.patching.runner;
 
+import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchMessages;
 import org.jboss.as.patching.metadata.ContentModification;
 import org.jboss.as.patching.metadata.ModificationType;
 import org.jboss.as.patching.metadata.ModuleItem;
-import org.jboss.marshalling.ByteInputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -58,7 +58,7 @@ class ModuleRemoveTask extends AbstractModuleTask {
         final OutputStream os = new FileOutputStream(moduleXml);
         try {
             final ByteArrayInputStream is = new ByteArrayInputStream(getFileContent(contentItem));
-            return PatchUtils.copyAndGetHash(is, os);
+            return HashUtils.copyAndGetHash(is, os);
         } finally {
             PatchUtils.safeClose(os);
         }

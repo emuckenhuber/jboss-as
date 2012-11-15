@@ -22,9 +22,9 @@
 
 package org.jboss.as.patching.runner;
 
-import static org.jboss.as.patching.runner.PatchUtils.copyAndGetHash;
 import static org.jboss.as.patching.runner.PatchUtils.safeClose;
 
+import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchMessages;
 import org.jboss.as.patching.metadata.ContentItem;
 import org.jboss.as.patching.metadata.ContentModification;
@@ -78,7 +78,7 @@ class FileRemoveTask implements PatchingTask {
         // See if the hash matches the metadata
 
         final byte[] expected = description.getModification().getTargetHash();
-        final byte[] actual = PatchUtils.calculateHash(target);
+        final byte[] actual = HashUtils.hashFile(target);
         return Arrays.equals(expected, actual);
     }
 
@@ -137,7 +137,7 @@ class FileRemoveTask implements PatchingTask {
         }
         final OutputStream os = new FileOutputStream(target);
         try {
-            return copyAndGetHash(is, os);
+            return HashUtils.copyAndGetHash(is, os);
         } finally {
             safeClose(os);
         }

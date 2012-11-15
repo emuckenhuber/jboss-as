@@ -22,6 +22,7 @@
 
 package org.jboss.as.patching.runner;
 
+import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.PatchLogger;
 import org.jboss.as.patching.PatchMessages;
@@ -58,7 +59,7 @@ class BundlePatchingTask extends AbstractPatchingTask<BundleItem> {
                 if(children == null || children.length == 0) {
                     return NO_CONTENT;
                 }
-                return PatchUtils.calculateHash(bundlePath);
+                return HashUtils.hashFile(bundlePath);
             }
         }
         return NO_CONTENT;
