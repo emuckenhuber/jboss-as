@@ -33,7 +33,7 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 
 import org.jboss.as.patching.IoUtils;
-import org.jboss.as.patching.generator.ZipUtils;
+import org.jboss.as.patching.ZipUtils;
 import org.jboss.as.patching.metadata.Patch;
 import org.jboss.as.patching.metadata.PatchXml;
 
