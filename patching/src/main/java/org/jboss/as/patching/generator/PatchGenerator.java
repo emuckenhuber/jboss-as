@@ -46,6 +46,7 @@ import javax.xml.stream.XMLStreamException;
 import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.IoUtils;
 import org.jboss.as.patching.PatchMessages;
+import org.jboss.as.patching.ZipUtils;
 import org.jboss.as.patching.metadata.BundleItem;
 import org.jboss.as.patching.metadata.ContentModification;
 import org.jboss.as.patching.metadata.MiscContentItem;
