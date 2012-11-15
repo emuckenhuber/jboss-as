@@ -22,7 +22,6 @@
 
 package org.jboss.as.patching.generator;
 
-import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,9 +29,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * Utilities related to patch file generation.
@@ -48,44 +44,6 @@ public class PatchUtils {
     public static final byte[] NO_CONTENT = new byte[0];
 
     private static final int DEFAULT_BUFFER_SIZE = 65536;
-
-    public static byte[] hashFile(File file, MessageDigest digest) throws IOException {
-
-        synchronized (digest) {
-            digest.reset();
-            updateDigest(digest, file);
-            return digest.digest();
-        }
-    }
-
-    private static void updateDigest(MessageDigest digest, File file) throws IOException {
-        if (file.isDirectory()) {
-            File[] childList = file.listFiles();
-            if (childList != null) {
-                Map<String, File> sortedChildren = new TreeMap<String, File>();
-                for (File child : childList) {
-                    sortedChildren.put(child.getName(), child);
-                }
-                for (File child : sortedChildren.values()) {
-                    updateDigest(digest, child);
-                }
-            }
-        } else {
-            FileInputStream fis = new FileInputStream(file);
-            try {
-
-                BufferedInputStream bis = new BufferedInputStream(fis);
-                byte[] bytes = new byte[8192];
-                int read;
-                while ((read = bis.read(bytes)) > -1) {
-                    digest.update(bytes, 0, read);
-                }
-            } finally {
-                safeClose(fis);
-            }
-
-        }
-    }
 
     public static void copyFile(File sourceFile, File targetFile) throws IOException {
         if (sourceFile.isDirectory()) {
