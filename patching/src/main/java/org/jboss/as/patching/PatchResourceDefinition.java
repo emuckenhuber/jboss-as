@@ -85,7 +85,7 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
             .setAllowNull(true)
             .build();
 
-    static final AttributeDefinition RESTORE_CONFIGURATION = SimpleAttributeDefinitionBuilder.create("restore-configuration", ModelType.BOOLEAN)
+    public static final AttributeDefinition RESTORE_CONFIGURATION = SimpleAttributeDefinitionBuilder.create("restore-configuration", ModelType.BOOLEAN)
             .setDefaultValue(new ModelNode(true))
             .setAllowNull(true)
             .build();

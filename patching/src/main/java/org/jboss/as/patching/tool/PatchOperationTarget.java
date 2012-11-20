@@ -36,7 +36,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUT
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 
 import org.jboss.as.patching.Constants;
-import org.jboss.as.patching.PatchResourceDefinition;
 import org.jboss.as.patching.runner.ContentVerificationPolicy;
 import org.jboss.as.patching.runner.PatchingException;
 import org.jboss.as.patching.runner.PatchingResult;
@@ -91,7 +90,7 @@ public abstract class PatchOperationTarget {
     //
 
     protected abstract ModelNode applyPatch(final File file, final ContentPolicyBuilderImpl builder) throws IOException;
-    protected abstract ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, final boolean restoreConfiguration) throws IOException;
+    protected abstract ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, boolean rollbackTo, final boolean restoreConfiguration) throws IOException;
 
     protected static class LocalPatchOperationTarget extends PatchOperationTarget {
 
@@ -116,12 +115,12 @@ public abstract class PatchOperationTarget {
         }
 
         @Override
-        protected ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, boolean restoreConfiguration) {
+        protected ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, boolean rollbackTo, boolean restoreConfiguration) {
             final ContentVerificationPolicy policy = builder.createPolicy();
             // FIXME expose rollbackTo parameter
             ModelNode result = new ModelNode();
             try {
-                PatchingResult rollback = tool.rollback(patchId, policy, PatchResourceDefinition.ROLLBACK_TO.getDefaultValue().asBoolean(), restoreConfiguration);
+                PatchingResult rollback = tool.rollback(patchId, policy, rollbackTo, restoreConfiguration);
                 rollback.commit();
                 result.set(OUTCOME, SUCCESS);
             } catch (PatchingException e) {
@@ -153,8 +152,8 @@ public abstract class PatchOperationTarget {
         }
 
         @Override
-        protected ModelNode rollback(String patchId, ContentPolicyBuilderImpl builder, boolean restoreConfiguration) throws IOException {
-            final ModelNode operation = createOperation(Constants.PATCH, address.toModelNode(), builder);
+        protected ModelNode rollback(String patchId, ContentPolicyBuilderImpl builder, boolean rollbackTo, boolean restoreConfiguration) throws IOException {
+            final ModelNode operation = createOperation(Constants.ROLLBACK, address.toModelNode(), builder);
             operation.get(Constants.PATCH_ID).set(patchId);
             return client.execute(operation);
         }
