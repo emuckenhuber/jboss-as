@@ -438,7 +438,7 @@ class CommandContextImpl implements CommandContext, ModelControllerClientFactory
     private void registerExtraHandlers() {
         ServiceLoader<CommandHandlerProvider> loader = ServiceLoader.load(CommandHandlerProvider.class);
         for (CommandHandlerProvider provider : loader) {
-            cmdRegistry.registerHandler(provider.createCommandHandler(this), provider.getNames());
+            cmdRegistry.registerHandler(provider.createCommandHandler(this), provider.isTabComplete(), provider.getNames());
         }
     }
 
