@@ -42,6 +42,8 @@ import java.util.Map;
 /**
  * java -Dboot.module.loader=org.jboss.as.boot.BootModuleLoader -cp jboss-modules.jar:loader.jar org.jboss.modules.Main -mp modules org.jboss.as.patching.tool
  *
+ * FIXME remove this class when cli's patch command provides the same feature set.
+ *
  * @author Emanuel Muckenhuber
  */
 public class Main {
