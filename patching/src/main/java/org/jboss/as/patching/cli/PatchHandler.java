@@ -34,6 +34,7 @@ import org.jboss.as.cli.Util;
 import org.jboss.as.cli.handlers.CommandHandlerWithHelp;
 import org.jboss.as.cli.handlers.DefaultFilenameTabCompleter;
 import org.jboss.as.cli.handlers.FilenameTabCompleter;
+import org.jboss.as.cli.handlers.SimpleTabCompleter;
 import org.jboss.as.cli.handlers.WindowsFilenameTabCompleter;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
@@ -50,15 +51,21 @@ import org.jboss.dmr.ModelNode;
 public class PatchHandler extends CommandHandlerWithHelp {
 
     static final String PATCH = "patch";
+    static final String APPLY = "apply";
+    static final String ROLLBACK = "rollback";
 
-    private final ArgumentWithoutValue path;
     private final ArgumentWithValue host;
+    private final ArgumentWithoutValue path;
+    private final ArgumentWithValue patchId;
+    private final ArgumentWithValue action;
+    private final ArgumentWithoutValue rollbackTo;
+    private final ArgumentWithoutValue keepConfiguration;
 
     public PatchHandler(final CommandContext context) {
         super(PATCH, false);
 
-        final FilenameTabCompleter pathCompleter = Util.isWindows() ? new WindowsFilenameTabCompleter(context) : new DefaultFilenameTabCompleter(context);
-        path = new FileSystemPathArgument(this, pathCompleter, 0, "--path");
+        action = new ArgumentWithValue(this, new SimpleTabCompleter(new String[]{APPLY, ROLLBACK}), 0, "--action");
+
         host = new ArgumentWithValue(this, new DefaultCompleter(CandidatesProviders.HOSTS), "--host") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
@@ -66,25 +73,103 @@ public class PatchHandler extends CommandHandlerWithHelp {
                 return connected && ctx.isDomainMode() && super.canAppearNext(ctx);
             }
         };
+        final FilenameTabCompleter pathCompleter = Util.isWindows() ? new WindowsFilenameTabCompleter(context) : new DefaultFilenameTabCompleter(context);
+        path = new FileSystemPathArgument(this, pathCompleter, 1, "--path") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterCommand(APPLY, ctx)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+
+        };
+        path.addRequiredPreceding(action);
+        patchId = new ArgumentWithValue(this, "--patch-id") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        patchId.addRequiredPreceding(action);
+        rollbackTo = new ArgumentWithoutValue(this, "--rollback-to") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        rollbackTo.addRequiredPreceding(action);
+        keepConfiguration = new ArgumentWithoutValue(this, "--keep-configuration") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        keepConfiguration.addRequiredPreceding(action);
+    }
+
+    private boolean canOnlyAppearAfterCommand(String action, CommandContext ctx) {
+        final String actionStr = this.action.getValue(ctx.getParsedCommandLine());
+        if(actionStr == null) {
+            return false;
+        }
+        return (actionStr.equals(action));
     }
 
     @Override
     protected void doHandle(CommandContext ctx) throws CommandLineException {
-        ParsedCommandLine args = ctx.getParsedCommandLine();
+        final PatchOperationTarget target = createPatchOperationTarget(ctx);
+        final PatchOperationBuilder builder = createPatchOperationBuilder(ctx.getParsedCommandLine());
 
-        final String path = this.path.getValue(args, true);
-
-        final File f = new File(path);
-        if(!f.exists()) {
-            // i18n?
-            throw new CommandFormatException("Path " + f.getAbsolutePath() + " doesn't exist.");
+        final ModelNode result;
+        try {
+            result = builder.execute(target);
+        } catch (IOException e) {
+            throw new CommandLineException("Unable to apply patch", e);
         }
-        if(f.isDirectory()) {
-            throw new CommandFormatException(f.getAbsolutePath() + " is a directory.");
+        if (!Util.isSuccess(result)) {
+            throw new CommandFormatException(Util.getFailureDescription(result));
         }
+        ctx.printLine(result.toJSONString(false));
 
+    }
+
+    private PatchOperationBuilder createPatchOperationBuilder(ParsedCommandLine args) throws CommandFormatException {
+        boolean applyPatch = APPLY.equals(action.getValue(args, true));
+
+        PatchOperationBuilder builder;
+        if (applyPatch) {
+            final String path = this.path.getValue(args, true);
+
+            final File f = new File(path);
+            if(!f.exists()) {
+                // i18n?
+                throw new CommandFormatException("Path " + f.getAbsolutePath() + " doesn't exist.");
+            }
+            if(f.isDirectory()) {
+                throw new CommandFormatException(f.getAbsolutePath() + " is a directory.");
+            }
+            builder = PatchOperationBuilder.Factory.patch(f);
+        } else {
+            final String id = patchId.getValue(args, true);
+            final boolean rollbackTo = this.rollbackTo.isPresent(args);
+            final boolean keepConfiguration = this.keepConfiguration.isPresent(args);
+            builder = PatchOperationBuilder.Factory.rollback(id, rollbackTo, !keepConfiguration);
+        }
+        return builder;
+    }
+
+    private PatchOperationTarget createPatchOperationTarget(CommandContext ctx) throws CommandLineException {
         final PatchOperationTarget target;
-
         boolean connected = ctx.getControllerHost() != null;
         if (connected) {
             if (ctx.isDomainMode()) {
@@ -101,19 +186,7 @@ public class PatchHandler extends CommandHandlerWithHelp {
                 throw new CommandLineException("Unable to apply patch to local JBOSS_HOME=" + jbossHome, e);
             }
         }
-
-        PatchOperationBuilder builder = PatchOperationBuilder.Factory.patch(f);
-        ModelNode result;
-        try {
-            result = builder.execute(target);
-        } catch (IOException e) {
-            throw new CommandLineException("Unable to apply patch", e);
-        }
-        if (!Util.isSuccess(result)) {
-            throw new CommandFormatException(Util.getFailureDescription(result));
-        }
-        ctx.printLine(result.toJSONString(false));
-
+        return target;
     }
 
     private static String getJBossHome() {

@@ -53,14 +53,15 @@ public interface PatchOperationBuilder extends PatchTool.ContentPolicyBuilder {
          * Create the rollback builder.
          *
          * @param patchId the patch-id to rollback
+         * @param rollbackTo rollback all one off patches until the given patch-id
          * @param restoreConfiguration whether to restore the configuration
          * @return the operation builder
          */
-        public static PatchOperationBuilder rollback(final String patchId, final boolean restoreConfiguration) {
+        public static PatchOperationBuilder rollback(final String patchId, final boolean rollbackTo, final boolean restoreConfiguration) {
             return new AbstractOperationBuilder() {
                 @Override
                 public ModelNode execute(PatchOperationTarget target) throws IOException {
-                    return target.rollback(patchId, this, restoreConfiguration);
+                    return target.rollback(patchId, this, rollbackTo, restoreConfiguration);
                 }
             };
         }
