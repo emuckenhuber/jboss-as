@@ -23,13 +23,15 @@
 package org.jboss.as.patching.cli;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
 import org.jboss.as.cli.CommandLineException;
 import org.jboss.as.cli.Util;
-import org.jboss.as.cli.handlers.BaseOperationCommand;
+import org.jboss.as.cli.handlers.CommandHandlerWithHelp;
 import org.jboss.as.cli.handlers.DefaultFilenameTabCompleter;
 import org.jboss.as.cli.handlers.FilenameTabCompleter;
 import org.jboss.as.cli.handlers.WindowsFilenameTabCompleter;
@@ -37,68 +39,33 @@ import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
 import org.jboss.as.cli.impl.DefaultCompleter;
 import org.jboss.as.cli.impl.FileSystemPathArgument;
-import org.jboss.as.cli.operation.OperationFormatException;
 import org.jboss.as.cli.operation.ParsedCommandLine;
-import org.jboss.as.controller.client.Operation;
-import org.jboss.as.controller.client.OperationBuilder;
-import org.jboss.as.protocol.StreamUtils;
+import org.jboss.as.patching.tool.PatchOperationBuilder;
+import org.jboss.as.patching.tool.PatchOperationTarget;
 import org.jboss.dmr.ModelNode;
 
 /**
  * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2012 Red Hat Inc.
  */
-public class PatchHandler extends BaseOperationCommand {
+public class PatchHandler extends CommandHandlerWithHelp {
 
     static final String PATCH = "patch";
-    private static final String PATCHING = "patching";
 
     private final ArgumentWithoutValue path;
     private final ArgumentWithValue host;
 
     public PatchHandler(final CommandContext context) {
-        super(context, PATCH, true);
+        super(PATCH, false);
 
         final FilenameTabCompleter pathCompleter = Util.isWindows() ? new WindowsFilenameTabCompleter(context) : new DefaultFilenameTabCompleter(context);
         path = new FileSystemPathArgument(this, pathCompleter, 0, "--path");
         host = new ArgumentWithValue(this, new DefaultCompleter(CandidatesProviders.HOSTS), "--host") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
-                return ctx.isDomainMode() && super.canAppearNext(ctx);
+                boolean connected = ctx.getControllerHost() != null;
+                return connected && ctx.isDomainMode() && super.canAppearNext(ctx);
             }
         };
-    }
-
-    @Override
-    protected ModelNode buildRequestWithoutHeaders(final CommandContext ctx) throws CommandFormatException {
-
-        final ModelNode address = new ModelNode();
-        if (ctx.isDomainMode()) {
-            address.get(Util.HOST).set(host.getValue(ctx.getParsedCommandLine(), true));
-        }
-        address.get(Util.CORE_SERVICE).set(PATCHING);
-
-        final ModelNode request = new ModelNode();
-        request.get(Util.ADDRESS).set(address);
-        request.get(Util.OPERATION).set(PATCH);
-        return request;
-    }
-
-    protected byte[] readBytes(File f) throws OperationFormatException {
-        byte[] bytes;
-        FileInputStream is = null;
-        try {
-            is = new FileInputStream(f);
-            bytes = new byte[(int) f.length()];
-            int read = is.read(bytes);
-            if(read != bytes.length) {
-                throw new OperationFormatException("Failed to read bytes from " + f.getAbsolutePath() + ": " + read + " from " + f.length());
-            }
-        } catch (Exception e) {
-            throw new OperationFormatException("Failed to read file " + f.getAbsolutePath(), e);
-        } finally {
-            StreamUtils.safeClose(is);
-        }
-        return bytes;
     }
 
     @Override
@@ -116,33 +83,49 @@ public class PatchHandler extends BaseOperationCommand {
             throw new CommandFormatException(f.getAbsolutePath() + " is a directory.");
         }
 
-        ModelNode request = buildRequest(ctx);
+        final PatchOperationTarget target;
 
-        execute(ctx, request, f, false);
-    }
+        boolean connected = ctx.getControllerHost() != null;
+        if (connected) {
+            if (ctx.isDomainMode()) {
+                String hostName = host.getValue(ctx.getParsedCommandLine(), true);
+                target = PatchOperationTarget.createHost(hostName, ctx.getModelControllerClient());
+            } else {
+                target = PatchOperationTarget.createStandalone(ctx.getModelControllerClient());
+            }
+        } else {
+            final String jbossHome = getJBossHome();
+            try {
+                target = PatchOperationTarget.createLocal(new File(jbossHome));
+            } catch (Exception e) {
+                throw new CommandLineException("Unable to apply patch to local JBOSS_HOME=" + jbossHome, e);
+            }
+        }
 
-    protected void execute(CommandContext ctx, ModelNode request, File f, boolean unmanaged) throws CommandFormatException {
-
-        addHeaders(ctx, request);
-
+        PatchOperationBuilder builder = PatchOperationBuilder.Factory.patch(f);
         ModelNode result;
         try {
-            if(!unmanaged) {
-                OperationBuilder op = new OperationBuilder(request);
-                op.addFileAsAttachment(f);
-                request.get(Util.CONTENT).get(0).get(Util.INPUT_STREAM_INDEX).set(0);
-                Operation operation = op.build();
-                result = ctx.getModelControllerClient().execute(operation);
-                operation.close();
-            } else {
-                result = ctx.getModelControllerClient().execute(request);
-            }
-        } catch (Exception e) {
-            throw new CommandFormatException("Failed to add the deployment content to the repository: " + e.getLocalizedMessage());
+            result = builder.execute(target);
+        } catch (IOException e) {
+            throw new CommandLineException("Unable to apply patch", e);
         }
         if (!Util.isSuccess(result)) {
             throw new CommandFormatException(Util.getFailureDescription(result));
         }
         ctx.printLine(result.toJSONString(false));
+
+    }
+
+    private static String getJBossHome() {
+        final String env = "JBOSS_HOME";
+        if (System.getSecurityManager() == null) {
+            return System.getenv(env);
+        } else {
+            return (String) AccessController.doPrivileged(new PrivilegedAction<Object>() {
+                public Object run() {
+                    return System.getProperty(env);
+                }
+            });
+        }
     }
 }

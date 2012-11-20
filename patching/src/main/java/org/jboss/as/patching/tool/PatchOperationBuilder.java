@@ -22,16 +22,10 @@
 
 package org.jboss.as.patching.tool;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
-
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.client.Operation;
-import org.jboss.as.patching.Constants;
-import org.jboss.as.patching.runner.PatchingException;
-
 import java.io.File;
-import java.io.InputStream;
+import java.io.IOException;
+
+import org.jboss.dmr.ModelNode;
 
 /**
  * Builder to create common patch operations.
@@ -43,10 +37,11 @@ public interface PatchOperationBuilder extends PatchTool.ContentPolicyBuilder {
     /**
      * Execute this operation on a target.
      *
+     * @return a ModelNode describing the outcome of the execution
      * @param target the target
-     * @throws PatchingException
+     * @throws IOException if an I/O error occurs while executing the operation.
      */
-    void execute(PatchOperationTarget target) throws PatchingException;
+    ModelNode execute(PatchOperationTarget target) throws IOException;
 
     public class Factory {
 
@@ -64,8 +59,8 @@ public interface PatchOperationBuilder extends PatchTool.ContentPolicyBuilder {
         public static PatchOperationBuilder rollback(final String patchId, final boolean restoreConfiguration) {
             return new AbstractOperationBuilder() {
                 @Override
-                public void execute(PatchOperationTarget target) throws PatchingException {
-                    target.rollback(patchId, this, restoreConfiguration);
+                public ModelNode execute(PatchOperationTarget target) throws IOException {
+                    return target.rollback(patchId, this, restoreConfiguration);
                 }
             };
         }
@@ -79,8 +74,8 @@ public interface PatchOperationBuilder extends PatchTool.ContentPolicyBuilder {
         public static PatchOperationBuilder patch(final File file) {
             return new AbstractOperationBuilder() {
                 @Override
-                public void execute(PatchOperationTarget target) throws PatchingException {
-                    target.applyPatch(file, this);
+                public ModelNode execute(PatchOperationTarget target) throws IOException {
+                    return target.applyPatch(file, this);
                 }
             };
         }
