@@ -27,10 +27,17 @@ package org.jboss.as.patching;
  */
 public class Constants {
 
+    public static final String MODULES = "modules";
+    public static final String BUNDLES = "bundles";
+    public static final String MISC = "misc";
+
+    public static final String PATCH = "patch";
+    public static final String PATCH_ID = "patch-id";
+    public static final String ROLLBACK = "rollback";
 
     public static final String OVERRIDE_MODULES = "override-modules";
     public static final String OVERRIDE_ALL = "override-all";
-    public static final String OVERRIDES = "override";
+    public static final String OVERRIDE = "override";
     public static final String PRESERVE = "preserve";
 
     public static final String TIMESTAMP = "timestamp";

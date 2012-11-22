@@ -49,6 +49,13 @@ public interface PatchTool {
     ContentVerificationPolicy DEFAULT = ContentVerificationPolicy.STRICT;
 
     /**
+     * Get the patch info.
+     *
+     * @return the patch info
+     */
+    PatchInfo getPatchInfo();
+
+    /**
      * Apply a patch.
      *
      * @param file the patch file
@@ -121,8 +128,8 @@ public interface PatchTool {
             if(overrideAll) {
                 builder.overrideAll();
             }
-            if(operation.hasDefined(Constants.OVERRIDES)) {
-                final ModelNode overrides = operation.get(Constants.OVERRIDES);
+            if(operation.hasDefined(Constants.OVERRIDE)) {
+                final ModelNode overrides = operation.get(Constants.OVERRIDE);
                 for(final ModelNode override : overrides.asList()) {
                     builder.overrideItem(override.toString());
                 }
@@ -133,7 +140,7 @@ public interface PatchTool {
                     builder.preserveItem(preserve.toString());
                 }
             }
-            return builder.build();
+            return builder.createPolicy();
         }
 
         /**
@@ -144,7 +151,7 @@ public interface PatchTool {
          */
         public static PatchTool create(final File jbossHome) throws IOException {
             final DirectoryStructure structure = DirectoryStructure.createDefault(jbossHome.getAbsoluteFile());
-            final ModuleLoader loader = ModuleLoader.forClass(Main.class);
+            final ModuleLoader loader = ModuleLoader.forClass(PatchTool.class);
             final ProductConfig config = new ProductConfig(loader, jbossHome.getAbsolutePath());
             final PatchInfo info = LocalPatchInfo.load(config, structure);
             return create(info, structure);
@@ -170,7 +177,7 @@ public interface PatchTool {
          *
          * @return the content verification policy
          */
-        ContentVerificationPolicy build();
+        ContentVerificationPolicy createPolicy();
 
         /**
          * Ignore all local module changes.
