@@ -128,8 +128,8 @@ public interface PatchTool {
             if(overrideAll) {
                 builder.overrideAll();
             }
-            if(operation.hasDefined(Constants.OVERRIDES)) {
-                final ModelNode overrides = operation.get(Constants.OVERRIDES);
+            if(operation.hasDefined(Constants.OVERRIDE)) {
+                final ModelNode overrides = operation.get(Constants.OVERRIDE);
                 for(final ModelNode override : overrides.asList()) {
                     builder.overrideItem(override.toString());
                 }

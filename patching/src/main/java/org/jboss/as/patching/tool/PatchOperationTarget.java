@@ -169,7 +169,7 @@ public abstract class PatchOperationTarget {
         operation.get(Constants.OVERRIDE_ALL).set(builder.overrideAll);
         if(! builder.override.isEmpty()) {
             for(final String o : builder.override) {
-                operation.get(Constants.OVERRIDES).add(o);
+                operation.get(Constants.OVERRIDE).add(o);
             }
         }
         if(! builder.preserve.isEmpty()) {

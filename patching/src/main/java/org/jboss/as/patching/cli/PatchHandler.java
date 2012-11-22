@@ -26,6 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Arrays;
+import java.util.Collection;
 
 import org.jboss.as.cli.CommandContext;
 import org.jboss.as.cli.CommandFormatException;
@@ -38,6 +40,7 @@ import org.jboss.as.cli.handlers.SimpleTabCompleter;
 import org.jboss.as.cli.handlers.WindowsFilenameTabCompleter;
 import org.jboss.as.cli.impl.ArgumentWithValue;
 import org.jboss.as.cli.impl.ArgumentWithoutValue;
+import org.jboss.as.cli.impl.CommaSeparatedCompleter;
 import org.jboss.as.cli.impl.DefaultCompleter;
 import org.jboss.as.cli.impl.FileSystemPathArgument;
 import org.jboss.as.cli.operation.ParsedCommandLine;
@@ -55,11 +58,19 @@ public class PatchHandler extends CommandHandlerWithHelp {
     static final String ROLLBACK = "rollback";
 
     private final ArgumentWithValue host;
-    private final ArgumentWithoutValue path;
-    private final ArgumentWithValue patchId;
+
     private final ArgumentWithValue action;
+
+    private final ArgumentWithoutValue path;
+
+    private final ArgumentWithValue patchId;
     private final ArgumentWithoutValue rollbackTo;
     private final ArgumentWithoutValue keepConfiguration;
+
+    private final ArgumentWithoutValue overrideModules;
+    private final ArgumentWithoutValue overrideAll;
+    private final ArgumentWithValue override;
+    private final ArgumentWithValue preserve;
 
     public PatchHandler(final CommandContext context) {
         super(PATCH, false);
@@ -73,11 +84,60 @@ public class PatchHandler extends CommandHandlerWithHelp {
                 return connected && ctx.isDomainMode() && super.canAppearNext(ctx);
             }
         };
+
+        // apply & rollback arguments
+
+        overrideModules = new ArgumentWithoutValue(this, "--override-modules") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterActions(ctx, APPLY, ROLLBACK)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        overrideModules.addRequiredPreceding(action);
+
+        overrideAll = new ArgumentWithoutValue(this, "--override-all") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterActions(ctx, APPLY, ROLLBACK)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        overrideAll.addRequiredPreceding(action);
+
+        override = new ArgumentWithValue(this, "--override") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterActions(ctx, APPLY, ROLLBACK)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        override.addRequiredPreceding(action);
+
+        preserve = new ArgumentWithValue(this, "--preserve") {
+            @Override
+            public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
+                if (canOnlyAppearAfterActions(ctx, APPLY, ROLLBACK)) {
+                    return super.canAppearNext(ctx);
+                }
+                return false;
+            }
+        };
+        preserve.addRequiredPreceding(action);
+
+        // apply arguments
+
         final FilenameTabCompleter pathCompleter = Util.isWindows() ? new WindowsFilenameTabCompleter(context) : new DefaultFilenameTabCompleter(context);
         path = new FileSystemPathArgument(this, pathCompleter, 1, "--path") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
-                if (canOnlyAppearAfterCommand(APPLY, ctx)) {
+                if (canOnlyAppearAfterActions(ctx, APPLY)) {
                     return super.canAppearNext(ctx);
                 }
                 return false;
@@ -85,10 +145,13 @@ public class PatchHandler extends CommandHandlerWithHelp {
 
         };
         path.addRequiredPreceding(action);
+
+        // rollback arguments
+
         patchId = new ArgumentWithValue(this, "--patch-id") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
-                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                if (canOnlyAppearAfterActions(ctx, ROLLBACK)) {
                     return super.canAppearNext(ctx);
                 }
                 return false;
@@ -98,7 +161,7 @@ public class PatchHandler extends CommandHandlerWithHelp {
         rollbackTo = new ArgumentWithoutValue(this, "--rollback-to") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
-                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                if (canOnlyAppearAfterActions(ctx, ROLLBACK)) {
                     return super.canAppearNext(ctx);
                 }
                 return false;
@@ -108,7 +171,7 @@ public class PatchHandler extends CommandHandlerWithHelp {
         keepConfiguration = new ArgumentWithoutValue(this, "--keep-configuration") {
             @Override
             public boolean canAppearNext(CommandContext ctx) throws CommandFormatException {
-                if (canOnlyAppearAfterCommand(ROLLBACK, ctx)) {
+                if (canOnlyAppearAfterActions(ctx, ROLLBACK)) {
                     return super.canAppearNext(ctx);
                 }
                 return false;
@@ -117,12 +180,12 @@ public class PatchHandler extends CommandHandlerWithHelp {
         keepConfiguration.addRequiredPreceding(action);
     }
 
-    private boolean canOnlyAppearAfterCommand(String action, CommandContext ctx) {
+    private boolean canOnlyAppearAfterActions(CommandContext ctx, String... actions) {
         final String actionStr = this.action.getValue(ctx.getParsedCommandLine());
-        if(actionStr == null) {
+        if(actionStr == null || actions.length == 0) {
             return false;
         }
-        return (actionStr.equals(action));
+        return Arrays.asList(actions).contains(actionStr);
     }
 
     @Override
@@ -164,6 +227,24 @@ public class PatchHandler extends CommandHandlerWithHelp {
             final boolean rollbackTo = this.rollbackTo.isPresent(args);
             final boolean keepConfiguration = this.keepConfiguration.isPresent(args);
             builder = PatchOperationBuilder.Factory.rollback(id, rollbackTo, !keepConfiguration);
+        }
+        if (overrideModules.isPresent(args)) {
+            builder.ignoreModuleChanges();
+        }
+        if (overrideAll.isPresent(args)) {
+            builder.overrideAll();
+        }
+        if (override.isPresent(args)) {
+            String overrideList = override.getValue(args);
+            for (String path : overrideList.split(",+")) {
+                builder.overrideItem(path);
+            }
+        }
+        if (preserve.isPresent(args)) {
+            String overrideList = preserve.getValue(args);
+            for (String path : overrideList.split(",+")) {
+                builder.preserveItem(path);
+            }
         }
         return builder;
     }
