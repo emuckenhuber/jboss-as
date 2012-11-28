@@ -84,20 +84,6 @@ public interface Patch {
     List<String> getAppliesTo();
 
     /**
-     * Get the module roots declared for this patch.
-     *
-     * @return map of logical names for the roots to the path of the standard location of the root
-     */
-    Map<String,String> getModuleSearchPaths();
-
-    /**
-     * Get the bundle roots declared for this patch.
-     *
-     * @return map of logical names for the roots to the path of the standard location of the root
-     */
-    Map<String,String> getBundleSearchPaths();
-
-    /**
      * Get the content modifications.
      *
      * @return the modifications

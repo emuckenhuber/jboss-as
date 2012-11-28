@@ -32,18 +32,14 @@ import static org.jboss.as.patching.metadata.ContentType.BUNDLE;
 public class BundleItem extends ModuleItem {
 
 
-    public BundleItem(String name, String slot, String searchPath, byte[] contentHash) {
-        super(name, slot, searchPath, contentHash, BUNDLE);
+    public BundleItem(String name, String slot, byte[] contentHash) {
+        super(name, slot, contentHash, BUNDLE);
     }
 
     @Override
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append(BundleItem.class.getSimpleName()).append("{");
-        String root = getSearchPath();
-        if (root != null) {
-            builder.append(root).append("/");
-        }
         builder.append(getName()).append(":").append(getSlot()).append("}");
         return builder.toString();
     }
