@@ -780,7 +780,7 @@ public class PatchGenerator {
         usage.addArguments("-v", "--version");
         usage.addInstruction(PatchMessages.MESSAGES.argVersion());
 
-        String headline = PatchMessages.MESSAGES.patchGeneratorUsageHeadline("TODO"); // TODO
+        String headline = usage.getDefaultUsageHeadline("patch-gen");
         System.out.print(usage.usage(headline));
 
     }
