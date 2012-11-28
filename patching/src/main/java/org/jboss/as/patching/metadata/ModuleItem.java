@@ -30,16 +30,14 @@ public class ModuleItem extends ContentItem {
     public static final String MAIN_SLOT = "main";
 
     private final String slot;
-    private final String searchPath;
 
-    public ModuleItem(String name, String slot, String searchPath, byte[] contentHash) {
-        this(name, slot, searchPath, contentHash, ContentType.MODULE);
+    public ModuleItem(String name, String slot, byte[] contentHash) {
+        this(name, slot, contentHash, ContentType.MODULE);
     }
 
-    ModuleItem(String name, String slot, String searchPath, final byte[] contentHash, ContentType type) {
+    ModuleItem(String name, String slot, final byte[] contentHash, ContentType type) {
         super(name, contentHash, type);
         this.slot = slot == null ? MAIN_SLOT : slot;
-        this.searchPath = searchPath;
     }
 
     /**
@@ -51,21 +49,10 @@ public class ModuleItem extends ContentItem {
         return slot;
     }
 
-    /**
-     * Get the name of the module root under which this module is located
-     * @return the root, or {@code null} if not specified and the default root should be used
-     */
-    public String getSearchPath() {
-        return searchPath;
-    }
-
     @Override
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append(ModuleItem.class.getSimpleName()).append("{");
-        if (searchPath != null) {
-            builder.append(searchPath).append("/");
-        }
         builder.append(getName()).append(":").append(slot).append("}");
         return builder.toString();
     }
