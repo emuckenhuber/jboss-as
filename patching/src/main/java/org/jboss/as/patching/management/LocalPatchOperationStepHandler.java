@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.patching;
+package org.jboss.as.patching.management;
 
 import static org.jboss.as.patching.PatchMessages.MESSAGES;
 
@@ -32,6 +32,8 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 
+import org.jboss.as.patching.Constants;
+import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.metadata.ContentItem;
 import org.jboss.as.patching.metadata.ContentType;
 import org.jboss.as.patching.runner.ContentVerificationPolicy;
