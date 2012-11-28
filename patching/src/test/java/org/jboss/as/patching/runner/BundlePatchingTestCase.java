@@ -66,7 +66,7 @@ public class BundlePatchingTestCase extends AbstractTaskTestCase {
         String bundleName = randomString();
         File bundleDir = createBundle(patchDir, bundleName, true);
         byte[] newHash = hashFile(bundleDir);
-        ContentModification bundleAdd = new ContentModification(new BundleItem(bundleName, null, null, newHash), NO_CONTENT, ADD);
+        ContentModification bundleAdd = new ContentModification(new BundleItem(bundleName, null, newHash), NO_CONTENT, ADD);
 
         Patch patch = PatchBuilder.create()
                 .setPatchId(patchID)
@@ -105,7 +105,7 @@ public class BundlePatchingTestCase extends AbstractTaskTestCase {
         File bundleDir = createBundle(patchDir, bundleName, true);
         byte[] newHash = hashFile(bundleDir);
 
-        ContentModification bundleModify = new ContentModification(new BundleItem(bundleName, null, null, newHash), existingHash, MODIFY);
+        ContentModification bundleModify = new ContentModification(new BundleItem(bundleName, null, newHash), existingHash, MODIFY);
 
         Patch patch = PatchBuilder.create()
                 .setPatchId(patchID)
@@ -140,7 +140,7 @@ public class BundlePatchingTestCase extends AbstractTaskTestCase {
 
         // build a one-off patch for the base installation
         // with 1 bundle removed
-        ContentModification bundleRemoved = new ContentModification(new BundleItem(bundleName, null, null, existingHash), existingHash, REMOVE);
+        ContentModification bundleRemoved = new ContentModification(new BundleItem(bundleName, null, existingHash), existingHash, REMOVE);
 
         Patch patch = PatchBuilder.create()
                 .setPatchId(randomString())
