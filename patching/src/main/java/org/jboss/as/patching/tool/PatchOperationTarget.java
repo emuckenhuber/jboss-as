@@ -31,11 +31,17 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COR
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE_RUNTIME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INPUT_STREAM_INDEX;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 
 import org.jboss.as.patching.Constants;
+import org.jboss.as.patching.PatchInfo;
 import org.jboss.as.patching.runner.ContentVerificationPolicy;
 import org.jboss.as.patching.runner.PatchingException;
 import org.jboss.as.patching.runner.PatchingResult;
@@ -89,6 +95,7 @@ public abstract class PatchOperationTarget {
 
     //
 
+    protected abstract ModelNode info() throws IOException;
     protected abstract ModelNode applyPatch(final File file, final ContentPolicyBuilderImpl builder) throws IOException;
     protected abstract ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, boolean rollbackTo, final boolean restoreConfiguration) throws IOException;
 
@@ -100,16 +107,29 @@ public abstract class PatchOperationTarget {
         }
 
         @Override
+        protected ModelNode info() throws IOException {
+            final PatchInfo info = tool.getPatchInfo();
+            final ModelNode result = new ModelNode();
+            result.get(OUTCOME).set(SUCCESS);
+            result.get(RESULT, Constants.CUMULATIVE).set(info.getCumulativeID());
+            result.get(RESULT, Constants.PATCHES).setEmptyList();
+            for(final String patch : info.getPatchIDs()) {
+                result.get(RESULT, Constants.PATCHES).add(patch);
+            }
+            return result;
+        }
+
+        @Override
         protected ModelNode applyPatch(final File file, final ContentPolicyBuilderImpl builder) {
             final ContentVerificationPolicy policy = builder.createPolicy();
             ModelNode result = new ModelNode();
             try {
                 PatchingResult apply = tool.applyPatch(file, policy);
                 apply.commit();
-                result.set(OUTCOME, SUCCESS);
+                result.get(OUTCOME).set(SUCCESS);
             } catch (PatchingException e) {
-                result.set(OUTCOME, FAILED);
-                result.set(FAILURE_DESCRIPTION, e.getLocalizedMessage());
+                result.get(OUTCOME).set(FAILED);
+                result.get(FAILURE_DESCRIPTION).set(e.getLocalizedMessage());
             }
             return result;
         }
@@ -122,10 +142,10 @@ public abstract class PatchOperationTarget {
             try {
                 PatchingResult rollback = tool.rollback(patchId, policy, rollbackTo, restoreConfiguration);
                 rollback.commit();
-                result.set(OUTCOME, SUCCESS);
+                result.get(OUTCOME).set(SUCCESS);
             } catch (PatchingException e) {
-                result.set(OUTCOME, FAILED);
-                result.set(FAILURE_DESCRIPTION, e.getLocalizedMessage());
+                result.get(OUTCOME).set(FAILED);
+                result.get(FAILURE_DESCRIPTION).set(e.getLocalizedMessage());
             }
             return result;
         }
@@ -140,6 +160,15 @@ public abstract class PatchOperationTarget {
         public RemotePatchOperationTarget(PathAddress address, ModelControllerClient client) {
             this.address = address;
             this.client = client;
+        }
+
+        @Override
+        protected ModelNode info() throws IOException {
+            final ModelNode operation = new ModelNode();
+            operation.get(OP).set(READ_RESOURCE_OPERATION);
+            operation.get(OP_ADDR).set(address.toModelNode());
+            operation.get(INCLUDE_RUNTIME).set(true);
+            return client.execute(operation);
         }
 
         @Override

@@ -57,10 +57,10 @@ public class PatchResourceDefinition extends SimpleResourceDefinition {
     static final AttributeDefinition VERSION = SimpleAttributeDefinitionBuilder.create("version", ModelType.STRING)
             .setStorageRuntime()
             .build();
-    static final AttributeDefinition CUMULATIVE = SimpleAttributeDefinitionBuilder.create("cumulative", ModelType.STRING)
+    static final AttributeDefinition CUMULATIVE = SimpleAttributeDefinitionBuilder.create(Constants.CUMULATIVE, ModelType.STRING)
             .setStorageRuntime()
             .build();
-    static final AttributeDefinition PATCHES = PrimitiveListAttributeDefinition.Builder.of("patches", ModelType.STRING)
+    static final AttributeDefinition PATCHES = PrimitiveListAttributeDefinition.Builder.of(Constants.PATCHES, ModelType.STRING)
             .setStorageRuntime()
             .build();
     static final AttributeDefinition MODULE_PATH = PrimitiveListAttributeDefinition.Builder.of("module-path", ModelType.STRING)
