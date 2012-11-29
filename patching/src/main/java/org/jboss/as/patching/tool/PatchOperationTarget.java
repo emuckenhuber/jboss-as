@@ -42,6 +42,8 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUC
 
 import org.jboss.as.patching.Constants;
 import org.jboss.as.patching.PatchInfo;
+import org.jboss.as.patching.metadata.ContentItem;
+import org.jboss.as.patching.metadata.ContentType;
 import org.jboss.as.patching.runner.ContentVerificationPolicy;
 import org.jboss.as.patching.runner.PatchingException;
 import org.jboss.as.patching.runner.PatchingResult;
@@ -127,9 +129,9 @@ public abstract class PatchOperationTarget {
                 PatchingResult apply = tool.applyPatch(file, policy);
                 apply.commit();
                 result.get(OUTCOME).set(SUCCESS);
+                result.get(RESULT).setEmptyObject();
             } catch (PatchingException e) {
-                result.get(OUTCOME).set(FAILED);
-                result.get(FAILURE_DESCRIPTION).set(e.getLocalizedMessage());
+                return formatFailedResponse(e);
             }
             return result;
         }
@@ -137,15 +139,14 @@ public abstract class PatchOperationTarget {
         @Override
         protected ModelNode rollback(final String patchId, final ContentPolicyBuilderImpl builder, boolean rollbackTo, boolean restoreConfiguration) {
             final ContentVerificationPolicy policy = builder.createPolicy();
-            // FIXME expose rollbackTo parameter
             ModelNode result = new ModelNode();
             try {
                 PatchingResult rollback = tool.rollback(patchId, policy, rollbackTo, restoreConfiguration);
                 rollback.commit();
                 result.get(OUTCOME).set(SUCCESS);
+                result.get(RESULT).setEmptyObject();
             } catch (PatchingException e) {
-                result.get(OUTCOME).set(FAILED);
-                result.get(FAILURE_DESCRIPTION).set(e.getLocalizedMessage());
+                return formatFailedResponse(e);
             }
             return result;
         }
@@ -186,6 +187,31 @@ public abstract class PatchOperationTarget {
             operation.get(Constants.PATCH_ID).set(patchId);
             return client.execute(operation);
         }
+    }
+
+    static ModelNode formatFailedResponse(final PatchingException e) {
+        final ModelNode result = new ModelNode();
+        result.get(OUTCOME).set(FAILED);
+        if(e.hasConflicts()) {
+            final ModelNode failureDescription = result.get(FAILURE_DESCRIPTION);
+            for(final ContentItem item : e.getConflicts()) {
+                final ContentType type = item.getContentType();
+                switch (type) {
+                    case BUNDLE:
+                        failureDescription.get(Constants.BUNDLES).add(item.getRelativePath());
+                        break;
+                    case MODULE:
+                        failureDescription.get(Constants.MODULES).add(item.getRelativePath());
+                        break;
+                    case MISC:
+                        failureDescription.get(Constants.MISC).add(item.getRelativePath());
+                        break;
+                }
+            }
+        } else {
+            result.get(FAILURE_DESCRIPTION).set(e.getLocalizedMessage());
+        }
+        return result;
     }
 
     static ModelNode createOperation(final String operationName, final ModelNode addr, final ContentPolicyBuilderImpl builder) {
