@@ -86,13 +86,13 @@ public class LocalPatchRollbackHandler implements OperationStepHandler {
                     final ContentType type = item.getContentType();
                     switch (type) {
                         case BUNDLE:
-                            failureDescription.get(Constants.BUNDLES).add(item.toString());
+                            failureDescription.get(Constants.BUNDLES).add(item.getRelativePath());
                             break;
                         case MODULE:
-                            failureDescription.get(Constants.MODULES).add(item.toString());
+                            failureDescription.get(Constants.MODULES).add(item.getRelativePath());
                             break;
                         case MISC:
-                            failureDescription.get(Constants.MISC).add(item.toString());
+                            failureDescription.get(Constants.MISC).add(item.getRelativePath());
                             break;
                     }
                 }
