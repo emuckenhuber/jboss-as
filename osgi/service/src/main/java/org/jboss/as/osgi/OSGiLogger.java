@@ -26,7 +26,9 @@ import static org.jboss.logging.Logger.Level.ERROR;
 import static org.jboss.logging.Logger.Level.INFO;
 import static org.jboss.logging.Logger.Level.WARN;
 
+import java.io.File;
 import java.util.Collection;
+import java.util.List;
 
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.logging.BasicLogger;
@@ -124,4 +126,8 @@ public interface OSGiLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 11917, value = "Deactivate deferred module phase for: %s")
     void warnDeactivateDeferredModulePhase(Bundle bundle);
+
+    @LogMessage(level = INFO)
+    @Message(id = 11918, value = "Using repository roots: %s")
+    void infoUsingRepositoryRoots(List<File> modulePath);
 }
