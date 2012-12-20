@@ -79,6 +79,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition PROTOCOL =
@@ -87,6 +88,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition VERIFY_CLIENT =
@@ -95,6 +97,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition VERIFY_DEPTH =
@@ -103,6 +106,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new IntRangeValidator(0, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition CERTIFICATE_FILE =
@@ -135,6 +139,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition TRUSTSTORE_TYPE =
@@ -143,6 +148,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition KEYSTORE_TYPE =
@@ -151,6 +157,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new StringLengthValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition SESSION_CACHE_SIZE =
@@ -159,6 +166,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition SESSION_TIMEOUT =
@@ -167,6 +175,7 @@ public class WebSSLDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
                     .build();
 
     protected static SimpleAttributeDefinition[] SSL_ATTRIBUTES = {

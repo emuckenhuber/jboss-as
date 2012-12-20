@@ -43,7 +43,7 @@ public class WebDefinition extends SimpleResourceDefinition {
 
     protected static final SimpleAttributeDefinition DEFAULT_VIRTUAL_SERVER =
             new SimpleAttributeDefinitionBuilder(Constants.DEFAULT_VIRTUAL_SERVER, ModelType.STRING, true)
-                    .setAllowExpression(true)
+                    .setXmlName(Constants.DEFAULT_VIRTUAL_SERVER)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode("default-host"))
                     .build();

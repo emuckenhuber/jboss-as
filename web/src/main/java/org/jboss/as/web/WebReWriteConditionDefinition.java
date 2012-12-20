@@ -51,6 +51,7 @@ public class WebReWriteConditionDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.PATTERN)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, false))
+                    .setAllowExpression(true)
                     .build();
 
 
@@ -59,6 +60,7 @@ public class WebReWriteConditionDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.FLAGS)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition[] ATTRIBUTES = { TEST, PATTERN, FLAGS };

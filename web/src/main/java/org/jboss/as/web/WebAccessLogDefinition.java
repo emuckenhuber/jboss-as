@@ -45,6 +45,7 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode("common"))
                     .setValidator(new StringLengthValidator(1, true))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition RESOLVE_HOSTS =
@@ -52,6 +53,7 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.RESOLVE_HOSTS)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition EXTENDED =
@@ -59,6 +61,7 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.EXTENDED)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition PREFIX =
@@ -67,6 +70,7 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
                     .setValidator(new StringLengthValidator(1, true))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition ROTATE =
@@ -74,7 +78,9 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.ROTATE)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(true))
+                    .setAllowExpression(true)
                     .build();
+
     protected static final SimpleAttributeDefinition[] ACCESS_LOG_ATTRIBUTES = {
             // IMPORTANT -- keep these in xsd order as this order controls marshalling
             PATTERN,
@@ -83,7 +89,6 @@ public class WebAccessLogDefinition extends SimpleResourceDefinition {
             PREFIX,
             ROTATE
     };
-
 
     private WebAccessLogDefinition() {
         super(WebExtension.ACCESS_LOG_PATH,

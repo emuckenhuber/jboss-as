@@ -71,6 +71,7 @@ public class WebConnectorDefinition extends SimpleResourceDefinition {
                     .setValidator(new StringLengthValidator(1))
                     .setAllowExpression(true)
                     //.setDefaultValue(new ModelNode("http"))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition EXECUTOR =
@@ -136,6 +137,7 @@ public class WebConnectorDefinition extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition REDIRECT_PORT =
@@ -143,7 +145,7 @@ public class WebConnectorDefinition extends SimpleResourceDefinition {
                     .setAllowNull(true)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-                    .setDefaultValue(new ModelNode(443))
+                    .setDefaultValue(new ModelNode(8433))
                     .setAllowExpression(true)
                     .build();
 
@@ -152,6 +154,7 @@ public class WebConnectorDefinition extends SimpleResourceDefinition {
                     .setAllowNull(true)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                            //.setDefaultValue(new ModelNode(8433))
                     .setAllowExpression(true)
                     .build();
 

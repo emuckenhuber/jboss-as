@@ -44,24 +44,28 @@ import org.jboss.dmr.ModelType;
 public class WebValveDefinition extends SimpleResourceDefinition {
     protected static final WebValveDefinition INSTANCE = new WebValveDefinition();
 
-    protected static final SimpleAttributeDefinition MODULE = new SimpleAttributeDefinitionBuilder(Constants.MODULE, ModelType.STRING)
-            .setAllowNull(false)
+    protected static final SimpleAttributeDefinition MODULE = new SimpleAttributeDefinitionBuilder(Constants.MODULE,
+            ModelType.STRING).setXmlName(Constants.MODULE).setAllowNull(false)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setValidator(new StringLengthValidator(1))
-            .build();
-
-    protected static final SimpleAttributeDefinition CLASS_NAME = new SimpleAttributeDefinitionBuilder(Constants.CLASS_NAME, ModelType.STRING)
-            .setAllowNull(false)
-            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setValidator(new StringLengthValidator(1))
-            .build();
-
-    protected static final SimpleAttributeDefinition ENABLED = new SimpleAttributeDefinitionBuilder(Constants.ENABLED, ModelType.BOOLEAN)
-            .setAllowNull(true)
             .setAllowExpression(true)
-            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-            .setDefaultValue(new ModelNode(true))
             .build();
+
+    protected static final SimpleAttributeDefinition CLASS_NAME = new SimpleAttributeDefinitionBuilder(Constants.CLASS_NAME,
+            ModelType.STRING).setXmlName(Constants.CLASS_NAME).setAllowNull(false)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .setValidator(new StringLengthValidator(1))
+            .setAllowExpression(true)
+            .build();
+
+    protected static final SimpleAttributeDefinition ENABLED =
+            new SimpleAttributeDefinitionBuilder(Constants.ENABLED, ModelType.BOOLEAN)
+                    .setXmlName(Constants.ENABLED)
+                    .setAllowNull(true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setDefaultValue(new ModelNode(true))
+                    .setAllowExpression(true)
+                    .build();
 
     protected static final SimpleAttributeDefinition[] ATTRIBUTES = { MODULE, CLASS_NAME, ENABLED};
 
@@ -69,14 +73,16 @@ public class WebValveDefinition extends SimpleResourceDefinition {
             .setAllowExpression(true)
             .build();
 
-    static final SimpleAttributeDefinition PARAM_NAME = new SimpleAttributeDefinitionBuilder(Constants.PARAM_NAME, ModelType.STRING, true)
-            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+    private static final SimpleAttributeDefinition PARAM_NAME = new SimpleAttributeDefinitionBuilder(Constants.PARAM_NAME,
+            ModelType.STRING, true).setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setValidator(new StringLengthValidator(1, true))
+            .setAllowExpression(true)
             .build();
 
-    static final SimpleAttributeDefinition PARAM_VALUE = new SimpleAttributeDefinitionBuilder(Constants.PARAM_VALUE, ModelType.STRING, true)
-            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+    private static final SimpleAttributeDefinition PARAM_VALUE = new SimpleAttributeDefinitionBuilder(Constants.PARAM_VALUE,
+            ModelType.STRING, true).setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setValidator(new StringLengthValidator(1, true))
+            .setAllowExpression(true)
             .build();
 
     protected static final SimpleAttributeDefinition PATH = new SimpleAttributeDefinitionBuilder(Constants.PATH, ModelType.STRING)

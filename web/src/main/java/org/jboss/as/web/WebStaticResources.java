@@ -61,6 +61,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, true))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition READ_ONLY =
@@ -69,6 +70,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new ModelTypeValidator(ModelType.BOOLEAN, true))
                     .setDefaultValue(new ModelNode(true))
+                    .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition WEBDAV =
             new SimpleAttributeDefinitionBuilder(Constants.WEBDAV, ModelType.BOOLEAN, true)
@@ -76,6 +78,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new ModelTypeValidator(ModelType.BOOLEAN, true))
                     .setDefaultValue(new ModelNode(false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition SECRET =
@@ -83,6 +86,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setAllowExpression(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, true))
+                    .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition MAX_DEPTH =
             new SimpleAttributeDefinitionBuilder(Constants.MAX_DEPTH, ModelType.INT, true)
@@ -90,6 +94,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new IntRangeValidator(1, true))
                     .setDefaultValue(new ModelNode(3))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition DISABLED =
@@ -98,6 +103,7 @@ public class WebStaticResources extends SimpleResourceDefinition {
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new ModelTypeValidator(ModelType.BOOLEAN, true))
                     .setDefaultValue(new ModelNode(false))
+                    .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition[] STATIC_ATTRIBUTES = {
             // IMPORTANT -- keep these in xsd order as this order controls marshalling

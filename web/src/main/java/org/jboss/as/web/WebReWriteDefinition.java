@@ -44,6 +44,7 @@ public class WebReWriteDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.PATTERN)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, false))
+                    .setAllowExpression(true)
                     .build();
 
 
@@ -52,12 +53,14 @@ public class WebReWriteDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.SUBSTITUTION)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, false))
+                    .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition FLAGS =
             new SimpleAttributeDefinitionBuilder(Constants.FLAGS, ModelType.STRING, false)
                     .setXmlName(Constants.FLAGS)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, false))
+                    .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition[] ATTRIBUTES = {PATTERN, SUBSTITUTION, FLAGS};
