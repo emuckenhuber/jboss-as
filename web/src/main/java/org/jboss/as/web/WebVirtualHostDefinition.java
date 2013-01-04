@@ -70,7 +70,6 @@ public class WebVirtualHostDefinition extends SimpleResourceDefinition {
                     .setXmlName(Constants.ENABLE_WELCOME_ROOT)
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
                     .setDefaultValue(new ModelNode(false))
-                    .setAllowExpression(true)
                     .build();
 
 
