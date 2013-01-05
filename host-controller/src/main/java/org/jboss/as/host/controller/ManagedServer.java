@@ -220,7 +220,7 @@ class ManagedServer {
         if(this.requiredState != InternalState.SERVER_STARTED) {
             ROOT_LOGGER.reconnectingServer(serverName);
             this.requiredState = InternalState.SERVER_STARTED;
-            internalSetState(new ReconnectTask(), InternalState.STOPPED, InternalState.SERVER_STARTING);
+            internalSetState(new ReconnectTask(), InternalState.STOPPED, InternalState.SEND_STDIN);
         }
     }
 
@@ -294,7 +294,7 @@ class ManagedServer {
                     server.proxyController = proxy;
                 }
             // TODO we just check that we are in the correct state, perhaps introduce a new state
-            }, InternalState.SERVER_STARTING, InternalState.SERVER_STARTING);
+            }, InternalState.SEND_STDIN, InternalState.SERVER_STARTING);
         }
         return proxyController;
     }
@@ -325,7 +325,7 @@ class ManagedServer {
             }
             try {
                 HostControllerLogger.ROOT_LOGGER.tracef("trying to reconnect to %s current-state (%s) required-state (%s)", serverName, state, requiredState);
-                internalSetState(new ReconnectTask(), state, InternalState.SERVER_STARTING);
+                internalSetState(new ReconnectTask(), state, InternalState.SEND_STDIN);
             } catch (Exception e) {
                 HostControllerLogger.ROOT_LOGGER.debugf(e, "failed to send reconnect task");
             }
@@ -391,6 +391,7 @@ class ManagedServer {
                 case PROCESS_STARTING:
                     this.internalState = InternalState.PROCESS_ADDED;
                     break;
+                case SEND_STDIN:
                 case SERVER_STARTING:
                     this.internalState = InternalState.PROCESS_STARTED;
                     break;
@@ -435,7 +436,7 @@ class ManagedServer {
                 return new ProcessAddTask();
             } case PROCESS_STARTING: {
                 return new ProcessStartTask();
-            } case SERVER_STARTING: {
+            } case SEND_STDIN: {
                 return new SendStdInTask();
             } case SERVER_STARTED: {
                 return new ServerStartedTask();
@@ -474,6 +475,13 @@ class ManagedServer {
                 }
                 break;
             } case PROCESS_STARTED: {
+                if(required == InternalState.SERVER_STARTED) {
+                    return InternalState.SEND_STDIN;
+                } else if( required == InternalState.STOPPED) {
+                    return InternalState.PROCESS_STOPPING;
+                }
+                break;
+            } case SEND_STDIN: {
                 if(required == InternalState.SERVER_STARTED) {
                     return InternalState.SERVER_STARTING;
                 } else if( required == InternalState.STOPPED) {
@@ -561,6 +569,7 @@ class ManagedServer {
         PROCESS_ADDED,
         PROCESS_STARTING(true),
         PROCESS_STARTED,
+        SEND_STDIN(true),
         SERVER_STARTING(true),
         SERVER_STARTED,
         PROCESS_STOPPING(true),
