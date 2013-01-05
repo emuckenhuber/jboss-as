@@ -49,6 +49,7 @@ import org.jboss.dmr.ModelNode;
  */
 public class StartServersHandler implements OperationStepHandler, DescriptionProvider {
 
+    public static final boolean START_BLOCKING = Boolean.parseBoolean(SecurityActions.getSystemProperty("org.jboss.as.host.start.servers.sequential", "false"));
     public static final String OPERATION_NAME = "start-servers";
 
     private final ServerInventory serverInventory;
@@ -111,7 +112,7 @@ public class StartServersHandler implements OperationStepHandler, DescriptionPro
         for(final String serverName : servers.keys()) {
             if(servers.get(serverName, AUTO_START).asBoolean(true)) {
                 try {
-                    serverInventory.startServer(serverName, domainModel);
+                    serverInventory.startServer(serverName, domainModel, START_BLOCKING);
                 } catch (Exception e) {
                     ROOT_LOGGER.failedToStartServer(e, serverName);
                 }
@@ -126,7 +127,7 @@ public class StartServersHandler implements OperationStepHandler, DescriptionPro
             boolean auto = servers.get(serverName, AUTO_START).asBoolean(true);
             if (info == null && auto) {
                 try {
-                    serverInventory.startServer(serverName, domainModel);
+                    serverInventory.startServer(serverName, domainModel, START_BLOCKING);
                 } catch (Exception e) {
                     ROOT_LOGGER.failedToStartServer(e, serverName);
                 }
