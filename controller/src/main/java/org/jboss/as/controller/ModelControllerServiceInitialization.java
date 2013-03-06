@@ -26,9 +26,6 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.msc.service.ServiceTarget;
 
-import java.util.Iterator;
-import java.util.ServiceLoader;
-
 /**
  * Internal extension point for core resource registrations.
  *
