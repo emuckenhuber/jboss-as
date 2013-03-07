@@ -61,6 +61,7 @@ import org.osgi.framework.ServiceRegistration;
  *
  * @author Thomas.Diesler@jboss.com
  * @since 31-Aug-2012
+ *
  */
 class RepositoryService extends AbstractService<XRepository> {
 
