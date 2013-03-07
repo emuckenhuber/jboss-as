@@ -55,6 +55,7 @@ import org.jboss.osgi.repository.spi.MavenDelegateRepository.ConfigurationProper
  *
  * @author Thomas.Diesler@jboss.com
  * @since 31-Aug-2012
+ *
  */
 public final class RepositoryService extends AbstractService<XPersistentRepository> {
 
