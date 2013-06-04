@@ -121,6 +121,7 @@ class IdentityPatchRunner implements InstallationManager.ModificationCompletion 
         try {
             return executeTasks(context, callback);
         } catch (Exception e) {
+            e.printStackTrace();
             callback.rollback();
             throw rethrowException(e);
         }
