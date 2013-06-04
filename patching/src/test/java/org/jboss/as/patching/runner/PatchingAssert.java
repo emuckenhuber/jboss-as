@@ -47,12 +47,12 @@ import org.jboss.as.patching.metadata.Patch;
  */
 public class PatchingAssert {
 
-    static void assertContains(File f, File... files) {
+    public static void assertContains(File f, File... files) {
         List<File> set = Arrays.asList(files);
         assertTrue(f + " not found in " + set, set.contains(f));
     }
 
-    static File assertDirExists(File rootDir, String... segments) {
+    public static File assertDirExists(File rootDir, String... segments) {
         return assertFileExists(true, rootDir, segments);
     }
 
@@ -98,7 +98,7 @@ public class PatchingAssert {
         assertEquals(message, bytesToHexString(expected), bytesToHexString(hashFile(f)));
     }
 
-    static void assertDefinedModule(File[] modulesPath, String moduleName, byte[] expectedHash) throws Exception {
+    public static void assertDefinedModule(File[] modulesPath, String moduleName, byte[] expectedHash) throws Exception {
         for (File path : modulesPath) {
             final File modulePath = PatchContentLoader.getModulePath(path, moduleName, "main");
             final File moduleXml = new File(modulePath, "module.xml");
@@ -112,6 +112,20 @@ public class PatchingAssert {
             }
         }
         fail("count not find module for " + moduleName + " in " + asList(modulesPath));
+    }
+
+    public static void assertDefinedModule(File moduleRoot, String moduleName, byte[] expectedHash) throws Exception {
+        final File modulePath = PatchContentLoader.getModulePath(moduleRoot, moduleName, "main");
+        final File moduleXml = new File(modulePath, "module.xml");
+        if (moduleXml.exists()) {
+            assertDefinedModuleWithRootElement(moduleXml, moduleName, "<module");
+            if (expectedHash != null) {
+                byte[] actualHash = hashFile(modulePath);
+                assertTrue("content of module differs", Arrays.equals(expectedHash, actualHash));
+            }
+            return;
+        }
+        fail("count not find module for " + moduleName + " in " + moduleRoot);
     }
 
     static void assertDefinedBundle(File[] bundlesPath, String moduleName, byte[] expectedHash) throws Exception {
@@ -164,7 +178,7 @@ public class PatchingAssert {
         assertTrue(string + " not found in " + f + " with content=" + content, content.contains(string));
     }
 
-    static void assertPatchHasBeenApplied(PatchingResult result, Patch patch) {
+    public static void assertPatchHasBeenApplied(PatchingResult result, Patch patch) {
         if (CUMULATIVE == patch.getPatchType()) {
             assertEquals(patch.getPatchId(), result.getPatchInfo().getCumulativeID());
             assertEquals(patch.getResultingVersion(), result.getPatchInfo().getVersion());
