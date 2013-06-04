@@ -190,4 +190,13 @@ public class IoUtils {
         }
         return ok;
     }
+
+    public static File mkdir(File parent, String... segments) throws IOException {
+        File dir = parent;
+        for (String segment : segments) {
+            dir = new File(dir, segment);
+        }
+        dir.mkdirs();
+        return dir;
+    }
 }
