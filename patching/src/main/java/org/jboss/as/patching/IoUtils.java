@@ -199,4 +199,17 @@ public class IoUtils {
         dir.mkdirs();
         return dir;
     }
+
+    /**
+     * Return a new File object based on the baseDir and the segments.
+     *
+     * This method does not perform any operation on the file system.
+     */
+    public static File newFile(File baseDir, String... segments) throws Exception {
+        File f = baseDir;
+        for (String segment : segments) {
+            f = new File(f, segment);
+        }
+        return f;
+    }
 }
