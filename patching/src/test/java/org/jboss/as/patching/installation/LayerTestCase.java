@@ -28,7 +28,9 @@ import static junit.framework.Assert.assertTrue;
 import static org.jboss.as.patching.HashUtils.hashFile;
 import static org.jboss.as.patching.IoUtils.NO_CONTENT;
 import static org.jboss.as.patching.IoUtils.mkdir;
+import static org.jboss.as.patching.IoUtils.newFile;
 import static org.jboss.as.patching.PatchInfo.BASE;
+import static org.jboss.as.patching.metadata.LayerType.Layer;
 import static org.jboss.as.patching.metadata.ModificationType.ADD;
 import static org.jboss.as.patching.runner.PatchingAssert.assertDefinedModule;
 import static org.jboss.as.patching.runner.PatchingAssert.assertDirExists;
@@ -36,7 +38,6 @@ import static org.jboss.as.patching.runner.PatchingAssert.assertPatchHasBeenAppl
 import static org.jboss.as.patching.runner.TestUtils.createModule;
 import static org.jboss.as.patching.runner.TestUtils.createPatchXMLFile;
 import static org.jboss.as.patching.runner.TestUtils.createZippedPatchFile;
-import static org.jboss.as.patching.runner.TestUtils.newFile;
 import static org.jboss.as.patching.runner.TestUtils.randomString;
 import static org.jboss.as.patching.runner.TestUtils.tree;
 
@@ -112,7 +113,7 @@ public class LayerTestCase extends AbstractTaskTestCase {
         ProductConfig productConfig = new ProductConfig("product", "version", "consoleSlot");
 
         // add a layer
-        String layerName = "mylayer"; //randomString();
+        String layerName = randomString();
         installLayer(env.getModuleRoot(), env.getInstalledImage().getLayersConf(), layerName);
 
         InstalledIdentity installedIdentity = InstalledIdentity.load(env.getInstalledImage().getJbossHome(), productConfig, env.getInstalledImage().getModulesDir());
@@ -121,16 +122,15 @@ public class LayerTestCase extends AbstractTaskTestCase {
         tree(env.getInstalledImage().getJbossHome());
 
         // build a one-off patch for the layer with 1 added module
-        String patchID = "patchId"; //randomString();
+        String patchID = randomString();
         File patchDir = mkdir(tempDir, patchID);
-        String moduleName = "mymodule"; randomString();
-        // FIXME if all the layers' module are installed at the root of the patch, it's up to the patch gen to avoid any overrides
-        File patchedLayerModuleRoot = newFile(patchDir, "system", "layers", layerName);
-        File moduleDir = createModule(patchDir /* patchedLayerModuleRoot */, moduleName);
+        String layerPatchId = randomString();
+        String moduleName = randomString();
+        File patchedLayerModuleRoot = newFile(patchDir, layerPatchId, Layer.getDirName(), layerName);
+        File moduleDir = createModule(patchedLayerModuleRoot, moduleName);
         byte[] newHash = hashFile(moduleDir);
         ContentModification moduleAdded = new ContentModification(new ModuleItem(moduleName, ModuleItem.MAIN_SLOT, newHash), NO_CONTENT, ADD);
 
-        String layerPatchId = randomString();
         PatchElementImpl layerPatch = new PatchElementImpl(layerPatchId);
         layerPatch.addContentModification(moduleAdded);
         layerPatch.setProvider(new PatchElementProviderImpl(layerName, "1.0.1", false));
