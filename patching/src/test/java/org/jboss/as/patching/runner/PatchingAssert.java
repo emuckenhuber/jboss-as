@@ -37,8 +37,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+import junit.framework.Assert;
 import org.jboss.as.patching.DirectoryStructure;
 import org.jboss.as.patching.PatchInfo;
+import org.jboss.as.patching.installation.PatchableTarget;
 import org.jboss.as.patching.metadata.ContentItem;
 import org.jboss.as.patching.metadata.Patch;
 
@@ -56,11 +58,11 @@ public class PatchingAssert {
         return assertFileExists(true, rootDir, segments);
     }
 
-    static void assertDirDoesNotExist(File rootDir, String... segments) {
+    public static void assertDirDoesNotExist(File rootDir, String... segments) {
         assertFileDoesNotExist(rootDir, segments);
     }
 
-    static File assertFileExists(File rootDir, String... segments) {
+    public static File assertFileExists(File rootDir, String... segments) {
         return assertFileExists(false, rootDir, segments);
     }
 
@@ -196,7 +198,7 @@ public class PatchingAssert {
         assertDirDoesNotExist(structure.getInstalledImage().getPatchHistoryDir(patch.getPatchId()));
     }
 
-    static void assertPatchHasBeenRolledBack(PatchingResult result, Patch patch, PatchInfo expectedPatchInfo) {
+    public static void assertPatchHasBeenRolledBack(PatchingResult result, Patch patch, PatchInfo expectedPatchInfo) {
         assertEquals(expectedPatchInfo.getVersion(), result.getPatchInfo().getVersion());
         assertEquals(expectedPatchInfo.getCumulativeID(), result.getPatchInfo().getCumulativeID());
         assertEquals(expectedPatchInfo.getPatchIDs(), result.getPatchInfo().getPatchIDs());
@@ -208,5 +210,15 @@ public class PatchingAssert {
         assertDirDoesNotExist(structure.getModulePatchDirectory(patch.getPatchId()));
         assertDirDoesNotExist(structure.getBundlesPatchDirectory(patch.getPatchId()));
         assertDirDoesNotExist(structure.getInstalledImage().getPatchHistoryDir(patch.getPatchId()));
+    }
+
+    public static void assertInstallationIsPatched(Patch patch, PatchableTarget.TargetInfo targetInfo) {
+        if (CUMULATIVE == patch.getPatchType()) {
+            assertEquals(patch.getPatchId(), targetInfo.getCumulativeID());
+        } else {
+            Assert.assertTrue(targetInfo.getPatchIDs().contains(patch.getPatchId()));
+            // applied one-off patch is at the top of the patchIDs
+            assertEquals(patch.getPatchId(), targetInfo.getPatchIDs().get(0));
+        }
     }
 }

@@ -72,7 +72,6 @@ class MutableTargetImpl implements InstallationManager.MutablePatchingTarget {
     protected void restore() throws IOException {
         // persist the state for bundles and modules directory
         persist(current.getCumulativeID(), current.getPatchIDs());
-        persist(current.getCumulativeID(), current.getPatchIDs());
     }
 
     private void persist(final String cumulative, final List<String> patches) throws IOException {

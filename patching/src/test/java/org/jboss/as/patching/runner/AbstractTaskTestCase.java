@@ -82,6 +82,13 @@ public abstract class AbstractTaskTestCase {
         return result;
     }
 
+    protected PatchingResult rollback( String patchId, InstalledIdentity installedIdentity, InstalledImage installedImage) throws FileNotFoundException, PatchingException {
+        LegacyPatchRunner runner = new LegacyPatchRunner(installedImage, installedIdentity);
+        final PatchingResult result = runner.rollback(patchId, ContentVerificationPolicy.STRICT, false, true);
+        result.commit();
+        return result;
+    }
+
     protected PatchingResult rollback(final PatchInfo info, final String patchId) throws PatchingException {
         return rollback(info, patchId, false);
     }

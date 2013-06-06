@@ -205,7 +205,7 @@ public class IoUtils {
      *
      * This method does not perform any operation on the file system.
      */
-    public static File newFile(File baseDir, String... segments) throws Exception {
+    public static File newFile(File baseDir, String... segments) {
         File f = baseDir;
         for (String segment : segments) {
             f = new File(f, segment);
