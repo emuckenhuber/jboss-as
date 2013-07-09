@@ -59,6 +59,7 @@
                 <module>clust</module>
                 <module>multinode</module>
                 <module>manualmode</module>
+                <module>patching</module>
             </modules>
         </profile>
         <!-- Define ts.integration uber-group. -->
@@ -74,6 +75,7 @@
                 <module>rts</module>
                 <module>multinode</module>
                 <module>manualmode</module>
+                <module>patching</module>
             </modules>
         </profile>
 
@@ -146,6 +148,15 @@
             <activation><property><name>ts.manualmode</name></property></activation>
             <modules>
                 <module>manualmode</module>
+            </modules>
+        </profile>
+
+        <!-- -Dts.patching -->
+        <profile>
+            <id>ts.integ.group.patching</id>
+            <activation><property><name>ts.patching</name></property></activation>
+            <modules>
+                <module>patching</module>
             </modules>
         </profile>
 
