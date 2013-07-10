@@ -32,6 +32,7 @@ import org.jboss.as.patching.metadata.Patch;
 import org.jboss.as.patching.metadata.PatchBuilder;
 import org.jboss.as.version.ProductConfig;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -56,10 +57,8 @@ public class OneOffPatchTestCase {
      * Prepare a one-off patch which adds a misc file. Apply it, check that the file was created.
      * Roll it back, check that the file was deleted.
      */
-    @Test
+    @Test @Ignore
     public void testOneOffPatchAddingAMiscFile() throws Exception {
-        controller.start(CONTAINER);
-
         // prepare the patch
         File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
@@ -68,8 +67,9 @@ public class OneOffPatchTestCase {
         ProductConfig productConfig = new ProductConfig(PRODUCT, AS_VERSION, "consoleSlot");
         Patch oneOffPatch = PatchBuilder.create()
                 .setPatchId(patchID)
-                .setDescription("A one-off patch used for testing purposes.")
-                .oneOffPatchIdentity(productConfig.getProductName(), productConfig.getProductVersion(), NOT_PATCHED)
+                .setDescription("A one-off patch adding a misc file.")
+                .oneOffPatchIdentity(productConfig.getProductName(), productConfig.getProductVersion(),
+                        NOT_PATCHED)
                     .getParent()
                 .addContentModification(miscFileAdded)
                 .build();
@@ -78,12 +78,15 @@ public class OneOffPatchTestCase {
 
         System.out.println("ZIPFILE: " + zippedPatch.getAbsolutePath());
 
+
         // apply the patch
+        controller.start(CONTAINER);
         CliUtilsForPatching.applyPatch(zippedPatch.getAbsolutePath());
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
         String path = PatchingTestUtil.AS_DISTRIBUTION+"/awesomeDirectory/awesomeFile";
-        Assert.assertTrue(path, new File(path).exists());
+        Assert.assertTrue("File " + path + " should exist", new File(path).exists());
+        // TODO check the content of the file, not just its existence
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
 
@@ -91,8 +94,59 @@ public class OneOffPatchTestCase {
         CliUtilsForPatching.rollbackPatch(patchID);
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
-        Assert.assertFalse(new File(path).exists());
+        Assert.assertFalse("File + " + path + " should have been deleted", new File(path).exists());
 
         controller.stop(CONTAINER);
+    }
+
+    /**
+     * adds a new module "org.wildfly.awesomemodule" to the base layer
+     * @throws Exception
+     */
+    @Test
+    public void testOneOffPatchAddingAModule() throws Exception {
+        // prepare the patch
+        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
+        String patchID = randomString();
+        String layerPatchID  = randomString();
+        File oneOffPatchDir = mkdir(tempDir, patchID);
+        ContentModification moduleAdded = ContentModificationUtils.addModule(oneOffPatchDir, layerPatchID, "org.wildfly.awesomemodule", "content1", "content2");
+        ProductConfig productConfig = new ProductConfig(PRODUCT, AS_VERSION, "consoleSlot");
+        Patch oneOffPatch = PatchBuilder.create()
+            .setPatchId(patchID)
+            .setDescription("A one-off patch adding a new module.")
+                .oneOffPatchIdentity(productConfig.getProductName(), productConfig.getProductVersion(), NOT_PATCHED)
+                .getParent()
+            .oneOffPatchElement(layerPatchID, "base", NOT_PATCHED, false)
+                .setDescription("New module for the base layer")
+                .addContentModification(moduleAdded)
+                .getParent()
+           .build();
+        PatchingTestUtil.createPatchXMLFile(oneOffPatchDir, oneOffPatch);
+
+        File zippedPatch = PatchingTestUtil.createZippedPatchFile(oneOffPatchDir, patchID);
+
+        System.out.println("ZIPFILE: " + zippedPatch.getAbsolutePath());
+
+        // apply the patch
+        controller.start(CONTAINER);
+        CliUtilsForPatching.applyPatch(zippedPatch.getAbsolutePath());
+        controller.stop(CONTAINER);
+        controller.start(CONTAINER);
+
+        // TODO check that the module exists
+
+        controller.stop(CONTAINER);
+        controller.start(CONTAINER);
+
+        // rollback the patch
+        CliUtilsForPatching.rollbackPatch(patchID);
+        controller.stop(CONTAINER);
+        controller.start(CONTAINER);
+
+        // TODO check that the module exists
+
+        controller.stop(CONTAINER);
+
     }
 }
