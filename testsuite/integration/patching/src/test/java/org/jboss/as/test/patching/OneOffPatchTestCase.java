@@ -21,8 +21,6 @@
 
 package org.jboss.as.test.patching;
 
-import java.io.File;
-
 import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
@@ -35,12 +33,11 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.io.File;
+
 import static org.jboss.as.patching.Constants.NOT_PATCHED;
 import static org.jboss.as.patching.IoUtils.mkdir;
-import static org.jboss.as.test.patching.PatchingTestUtil.AS_VERSION;
-import static org.jboss.as.test.patching.PatchingTestUtil.CONTAINER;
-import static org.jboss.as.test.patching.PatchingTestUtil.PRODUCT;
-import static org.jboss.as.test.patching.PatchingTestUtil.randomString;
+import static org.jboss.as.test.patching.PatchingTestUtil.*;
 
 /**
  * @author Jan Martiska
@@ -102,6 +99,54 @@ public class OneOffPatchTestCase {
     }
 
     /**
+     * Prepare a one-off patch which modifies a misc file. Apply it, check that the file was replaced.
+     * Roll it back, check that the file was restored successfully.
+     */
+    @Test
+    public void testOneOffPatchModifyingAMiscFile() throws Exception {
+        // prepare the patch
+        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
+        String patchID = randomString();
+        File oneOffPatchDir = mkdir(tempDir, patchID);
+
+        final String testFilePath = PatchingTestUtil.AS_DISTRIBUTION + "/README.txt";
+        final String testContent = "test content";
+        final String originalContent = PatchingTestUtil.readFile(testFilePath);
+
+        ContentModification miscFileModified = ContentModificationUtils.modifyMisc(oneOffPatchDir, patchID, testContent, new File(testFilePath), "README.txt");
+        ProductConfig productConfig = new ProductConfig(PRODUCT, AS_VERSION, "consoleSlot");
+        Patch oneOffPatch = PatchBuilder.create()
+                .setPatchId(patchID)
+                .setDescription("A one-off patch modifying a misc file.")
+                .oneOffPatchIdentity(productConfig.getProductName(), productConfig.getProductVersion(),
+                        NOT_PATCHED)
+                .getParent()
+                .addContentModification(miscFileModified)
+                .build();
+        PatchingTestUtil.createPatchXMLFile(oneOffPatchDir, oneOffPatch);
+        File zippedPatch = PatchingTestUtil.createZippedPatchFile(oneOffPatchDir, patchID);
+
+
+        // apply the patch
+        controller.start(CONTAINER);
+        CliUtilsForPatching.applyPatch(zippedPatch.getAbsolutePath());
+        controller.stop(CONTAINER);
+
+        //check content
+        String patchContent = PatchingTestUtil.readFile(testFilePath);
+        Assert.assertEquals(testContent, patchContent);
+
+        //rollback the patch
+        controller.start(CONTAINER);
+        CliUtilsForPatching.rollbackPatch(patchID);
+        controller.stop(CONTAINER);
+
+        //check content
+        patchContent =  PatchingTestUtil.readFile(testFilePath);
+        Assert.assertEquals(originalContent, patchContent);
+    }
+
+    /**
      * adds a new module "org.wildfly.awesomemodule" to the base layer
      * @throws Exception
      */
@@ -134,7 +179,7 @@ public class OneOffPatchTestCase {
         controller.start(CONTAINER);
 
         // TODO more checks that the module exists
-        Assert.assertTrue("The patch " + patchID + " should be listed as installed" ,
+        Assert.assertTrue("The patch " + patchID + " should be listed as installed",
                 CliUtilsForPatching.getInstalledPatches().contains(patchID));
 
 
