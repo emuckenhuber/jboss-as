@@ -62,7 +62,8 @@ public class OneOffPatchTestCase {
         File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
         File oneOffPatchDir = mkdir(tempDir, patchID);
-        ContentModification miscFileAdded = ContentModificationUtils.addMisc(oneOffPatchDir, patchID, "content", "awesomeDirectory", "awesomeFile");
+        ContentModification miscFileAdded = ContentModificationUtils.addMisc(oneOffPatchDir, patchID,
+                "content", "awesomeDirectory", "awesomeFile");
         ProductConfig productConfig = new ProductConfig(PRODUCT, AS_VERSION, "consoleSlot");
         Patch oneOffPatch = PatchBuilder.create()
                 .setPatchId(patchID)
@@ -85,6 +86,8 @@ public class OneOffPatchTestCase {
         controller.start(CONTAINER);
         String path = PatchingTestUtil.AS_DISTRIBUTION+"/awesomeDirectory/awesomeFile";
         Assert.assertTrue("File " + path + " should exist", new File(path).exists());
+        Assert.assertTrue("The patch " + patchID + " should be listed as installed" ,
+                CliUtilsForPatching.getInstalledPatches().contains(patchID));
         // TODO check the content of the file, not just its existence
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
@@ -94,6 +97,8 @@ public class OneOffPatchTestCase {
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
         Assert.assertFalse("File + " + path + " should have been deleted", new File(path).exists());
+        Assert.assertFalse("The patch " + patchID + " NOT should be listed as installed" ,
+                CliUtilsForPatching.getInstalledPatches().contains(patchID));
 
         controller.stop(CONTAINER);
     }
@@ -133,7 +138,10 @@ public class OneOffPatchTestCase {
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
 
-        // TODO check that the module exists
+        // TODO more checks that the module exists
+        Assert.assertTrue("The patch " + patchID + " should be listed as installed" ,
+                CliUtilsForPatching.getInstalledPatches().contains(patchID));
+
 
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
@@ -143,9 +151,11 @@ public class OneOffPatchTestCase {
         controller.stop(CONTAINER);
         controller.start(CONTAINER);
 
-        // TODO check that the module exists
+        // TODO mode checks that the module does not exist anymore
+        Assert.assertFalse("The patch " + patchID + " NOT should be listed as installed" ,
+                CliUtilsForPatching.getInstalledPatches().contains(patchID));
 
         controller.stop(CONTAINER);
-
     }
+
 }
