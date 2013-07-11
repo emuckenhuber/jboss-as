@@ -21,34 +21,178 @@
 
 package org.jboss.as.test.patching;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import org.jboss.as.controller.client.helpers.ClientConstants;
 import org.jboss.as.test.integration.management.util.CLIWrapper;
+import org.jboss.dmr.ModelNode;
 
 /**
  * @author Jan Martiska
  */
 public class CliUtilsForPatching {
+    public static final String OVERRIDE_ALL = "--override-all";
+    public static final String OVERRIDE_MODULES = "--override-modules";
+    public static final String OVERRIDE = "--override=%s";
+    public static final String PRESERVE = "--preserve=%s";
+    public static final String KEEP_CONFIGURATION = "--keep-configuration";
+    public static final String ROLLBACK_TO = "--rollback-to";
 
     /**
      * Use the CLI to apply a patch
+     *
      * @param patchFilePath absolute path to the ZIP file containing the patch
      * @throws Exception
      */
     public static void applyPatch(String patchFilePath) throws Exception {
-        CLIWrapper cli = new CLIWrapper(true);
-        String command = "patch apply " + patchFilePath;
-        cli.sendLine(command);
-        cli.quit();
+        applyPatch(patchFilePath, null);
+    }
+
+
+    /**
+     * Use the CLI to apply a patch
+     *
+     * @param patchFilePath absolute path to the ZIP file containing the patch
+     * @param args          conflict resolution arguments or null
+     * @throws Exception
+     */
+    public static void applyPatch(String patchFilePath, String... args) throws Exception {
+        CLIWrapper cli = null;
+        try {
+            cli = new CLIWrapper(true);
+
+            StringBuilder builder = new StringBuilder("patch apply");
+            if (args != null) {
+                for (String arg : args) {
+                    builder.append(" ").append(arg);
+                }
+            }
+            builder.append(" ").append(patchFilePath);
+            String command = builder.toString();
+            cli.sendLine(command);
+        } finally {
+            if (cli != null) {
+                cli.quit();
+            }
+        }
     }
 
     /**
      * Use the CLI to rollback a patch
+     *
      * @param oneOffPatchID the ID of the patch that should be rolled back
      * @throws Exception
      */
     public static void rollbackPatch(String oneOffPatchID) throws Exception {
-        CLIWrapper cli = new CLIWrapper(true);
-        String command = "patch rollback --patch-id=" + oneOffPatchID;
-        cli.sendLine(command);
-        cli.quit();
+        rollbackPatch(oneOffPatchID, null);
     }
+
+    /**
+     * Use the CLI to rollback a patch
+     *
+     * @param oneoffPatchID the ID of the patch that should be rolled back
+     * @param args          conflict resolution arguments, rollback arguments
+     * @throws Exception
+     */
+    public static void rollbackPatch(String oneoffPatchID, String... args) throws Exception {
+        CLIWrapper cli = null;
+        try {
+            cli = new CLIWrapper(true);
+            StringBuilder builder = new StringBuilder("patch rollback");
+            if (args != null) {
+                for (String arg : args) {
+                    builder.append(" ").append(arg);
+                }
+            }
+            builder.append(" --patch-id=").append(oneoffPatchID);
+            String command = builder.toString();
+            cli.sendLine(command);
+        } finally {
+            if (cli != null) {
+                cli.quit();
+            }
+        }
+
+    }
+
+    /**
+     * Use the CLI to read information about the installed patches
+     *
+     * @return output of "patch info" command or null if output is empty
+     * @throws Exception
+     */
+    public static ModelNode info() throws Exception {
+        CLIWrapper cli = null;
+        try {
+            cli = new CLIWrapper(true);
+            String command = "patch info";
+            cli.sendLine(command);
+            String output = cli.readOutput();
+            return ModelNode.fromJSONString(output);
+        } finally {
+            if (cli != null) {
+                cli.quit();
+            }
+        }
+
+    }
+
+
+    /**
+     * Use CLI to get the list of currently installed patches
+     *
+     * @return the currently installed patches as a collection of patch IDs (strings)
+     * @throws Exception
+     */
+    public static Collection<String> getInstalledPatches() throws Exception {
+        CLIWrapper cli = null;
+        try {
+            cli = new CLIWrapper(true);
+            cli.sendLine("patch info");
+            String response = cli.readOutput();
+            ModelNode responseNode = ModelNode.fromJSONString(response);
+            List<ModelNode> patchesList = responseNode.get("result").get("patches").asList();
+            List<String> patchesListString = new ArrayList<String>();
+            for (ModelNode n : patchesList) {
+                patchesListString.add(n.asString());
+            }
+            return patchesListString;
+        } finally {
+            if (cli != null) {
+                cli.quit();
+            }
+        }
+    }
+
+    /**
+     * Check if the server is in restart-required state, that means
+     * management operation return "response-headers" : {"process-state" : "restart-required"}
+     *
+     * @return true if the server is in "restart-required" state
+     * @throws Exception
+     */
+    public static boolean doesServerRequireRestart() throws Exception {
+        CLIWrapper cli = null;
+        try {
+            cli = new CLIWrapper(true);
+            cli.sendLine("patch info");
+            String response = cli.readOutput();
+            ModelNode responseNode = ModelNode.fromJSONString(response);
+            ModelNode respHeaders = responseNode.get("response-headers");
+            if (respHeaders != null && respHeaders.isDefined()) {
+                ModelNode processState = respHeaders.get("process-state");
+                return processState != null && processState.isDefined() && processState.asString()
+                        .equals(ClientConstants.CONTROLLER_PROCESS_STATE_RESTART_REQUIRED);
+            } else {
+                return false;
+            }
+        } finally {
+            if (cli != null) {
+                cli.quit();
+            }
+        }
+    }
+
 }
