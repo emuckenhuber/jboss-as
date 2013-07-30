@@ -2,14 +2,16 @@ package org.jboss.as.test.patching;
 
 import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.patching.IoUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 
 import java.io.File;
 import java.io.IOException;
 
 import static org.jboss.as.patching.IoUtils.mkdir;
-import static org.jboss.as.patching.IoUtils.recursiveDelete;
+import static org.jboss.as.test.patching.PatchingTestUtil.BASE_MODULE_DIRECTORY;
 import static org.jboss.as.test.patching.PatchingTestUtil.CONTAINER;
 import static org.jboss.as.test.patching.PatchingTestUtil.MODULES_PATH;
 import static org.jboss.as.test.patching.PatchingTestUtil.assertPatchElements;
@@ -35,10 +37,16 @@ public class AbstractPatchingTestCase {
     public void cleanupForAll() throws Exception {
         if (controller.isStarted(CONTAINER))
             controller.stop(CONTAINER);
-        CliUtilsForPatching.rollbackAll();
 
-        if (recursiveDelete(tempDir)) {
+        final boolean success = CliUtilsForPatching.rollbackAll();
+        if (IoUtils.recursiveDelete(tempDir)) {
             tempDir.deleteOnExit();
+        }
+        if (!success) {
+            // Reset installation state
+            final File home = new File(PatchingTestUtil.AS_DISTRIBUTION);
+            PatchingTestUtil.resetInstallationState(home, BASE_MODULE_DIRECTORY);
+            Assert.fail("failed to rollback all patches " + CliUtilsForPatching.info());
         }
     }
 }
