@@ -25,10 +25,12 @@ import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.patching.IoUtils;
 import org.jboss.as.patching.metadata.ContentModification;
 import org.jboss.as.patching.metadata.Patch;
 import org.jboss.as.patching.metadata.PatchBuilder;
 import org.jboss.as.version.ProductConfig;
+import org.jboss.logging.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,10 +39,22 @@ import org.junit.runner.RunWith;
 
 import java.io.File;
 
-import static org.jboss.as.patching.Constants.*;
+import static org.jboss.as.test.patching.PatchingTestUtil.CONTAINER;
+import static org.jboss.as.test.patching.PatchingTestUtil.PRODUCT;
+import static org.jboss.as.test.patching.PatchingTestUtil.AS_VERSION;
+import static org.jboss.as.test.patching.PatchingTestUtil.FILE_SEPARATOR;
+import static org.jboss.as.test.patching.PatchingTestUtil.assertPatchElements;
+import static org.jboss.as.test.patching.PatchingTestUtil.baseModuleDir;
+import static org.jboss.as.test.patching.PatchingTestUtil.createModule0;
+import static org.jboss.as.test.patching.PatchingTestUtil.createPatchXMLFile;
+import static org.jboss.as.test.patching.PatchingTestUtil.createZippedPatchFile;
+import static org.jboss.as.test.patching.PatchingTestUtil.dump;
+import static org.jboss.as.test.patching.PatchingTestUtil.randomString;
+import static org.jboss.as.patching.Constants.BASE;
+import static org.jboss.as.patching.Constants.LAYERS;
+import static org.jboss.as.patching.Constants.SYSTEM;
 import static org.jboss.as.patching.IoUtils.mkdir;
 import static org.jboss.as.patching.IoUtils.newFile;
-import static org.jboss.as.test.patching.PatchingTestUtil.*;
 
 /**
  * @author Jan Martiska
@@ -48,6 +62,9 @@ import static org.jboss.as.test.patching.PatchingTestUtil.*;
 @RunWith(Arquillian.class)
 @RunAsClient
 public class OverridePreserveTestCase {
+
+    private static final Logger logger = Logger.getLogger(OverridePreserveTestCase.class);
+
     private final String file1 = PatchingTestUtil.AS_DISTRIBUTION + "/README.txt";
     private final String file1patchedContent = "Patched content for README.txt";
     private String file1originalContent;
@@ -58,6 +75,8 @@ public class OverridePreserveTestCase {
     private String file2originalContent;
     private final String file2modifiedContent = "I manually edited LICENSE.txt and it now looks like this.";
 
+    private File tempDir;
+
     @ArquillianResource
     private ContainerController controller;
 
@@ -65,6 +84,8 @@ public class OverridePreserveTestCase {
     public void setUp() throws Exception {
         file1originalContent = PatchingTestUtil.readFile(file1);
         file2originalContent = PatchingTestUtil.readFile(file2);
+        tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
+        assertPatchElements(baseModuleDir, null);
     }
 
     @After
@@ -74,6 +95,10 @@ public class OverridePreserveTestCase {
         CliUtilsForPatching.rollbackAll();
         PatchingTestUtil.setFileContent(file1, file1originalContent);
         PatchingTestUtil.setFileContent(file2, file2originalContent);
+
+        if (IoUtils.recursiveDelete(tempDir)) {
+            tempDir.deleteOnExit();
+        }
     }
 
     /**
@@ -85,7 +110,6 @@ public class OverridePreserveTestCase {
     @Test
     public void testPreserveMiscFiles() throws Exception {
         // prepare the patch
-        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
         File oneOffPatchDir = mkdir(tempDir, patchID);
 
@@ -151,7 +175,6 @@ public class OverridePreserveTestCase {
     @Test
     public void testOverrideMiscFiles() throws Exception {
         // prepare the patch
-        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
         File oneOffPatchDir = mkdir(tempDir, patchID);
 
@@ -217,7 +240,6 @@ public class OverridePreserveTestCase {
     @Test
     public void testOverrideAllMiscFiles() throws Exception {
         // prepare the patch
-        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
         File oneOffPatchDir = mkdir(tempDir, patchID);
 
@@ -283,7 +305,6 @@ public class OverridePreserveTestCase {
     @Test
     public void testOverrideOnePreserveOneMiscFile() throws Exception {
         // prepare the patch
-        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         String patchID = randomString();
         File oneOffPatchDir = mkdir(tempDir, patchID);
 
@@ -357,12 +378,11 @@ public class OverridePreserveTestCase {
         File baseModuleDir = newFile(new File(PatchingTestUtil.AS_DISTRIBUTION), "modules", SYSTEM, LAYERS, BASE);
         File moduleDir = createModule0(baseModuleDir, moduleName);
 
-        System.out.println("moduleDir = " + moduleDir.getAbsolutePath());
+        logger.info("moduleDir = " + moduleDir.getAbsolutePath());
 
         // prepare the patch
         String patchID = randomString();
         String baseLayerPatchID = randomString();
-        File tempDir = mkdir(new File(System.getProperty("java.io.tmpdir")), randomString());
         File patchDir = mkdir(tempDir, patchID);
 
         // create the patch with the updated module
@@ -380,7 +400,7 @@ public class OverridePreserveTestCase {
                 .build();
         createPatchXMLFile(patchDir, patch);
         File zippedPatch = createZippedPatchFile(patchDir, patchID);
-        System.out.println(zippedPatch.getAbsolutePath());
+        logger.info(zippedPatch.getAbsolutePath());
 
         // modify module
         File fileModifyModule = new File(moduleDir.getAbsolutePath() + FILE_SEPARATOR + "main", "newFile");

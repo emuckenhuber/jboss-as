@@ -29,10 +29,19 @@ import org.jboss.as.patching.ZipUtils;
 import org.jboss.as.patching.metadata.Patch;
 import org.jboss.as.patching.metadata.PatchXml;
 import org.jboss.as.process.protocol.StreamUtils;
+import org.jboss.logging.Logger;
 import org.junit.Assert;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.UUID;
@@ -43,18 +52,24 @@ import java.util.jar.Manifest;
 import static java.lang.String.format;
 import static org.jboss.as.patching.Constants.BASE;
 import static org.jboss.as.patching.Constants.LAYERS;
+import static org.jboss.as.patching.Constants.MODULES;
+import static org.jboss.as.patching.Constants.OVERLAYS;
 import static org.jboss.as.patching.Constants.SYSTEM;
 import static org.jboss.as.patching.IoUtils.mkdir;
 import static org.jboss.as.patching.IoUtils.newFile;
 import static org.jboss.as.patching.IoUtils.safeClose;
-import static org.jboss.as.patching.Constants.*;
 import static org.jboss.as.patching.PatchLogger.ROOT_LOGGER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
  * @author Jan Martiska, Jeff Mesnil
  */
 public class PatchingTestUtil {
+
+    private static final Logger logger = Logger.getLogger(PatchingTestUtil.class);
+
 
     public static final String CONTAINER = "jboss";
     public static final String AS_DISTRIBUTION = System.getProperty("jbossas.dist");
@@ -65,6 +80,7 @@ public class PatchingTestUtil {
     public static final String PATCHES_PATH = AS_DISTRIBUTION + FILE_SEPARATOR + RELATIVE_PATCHES_PATH;
     private static final String RELATIVE_MODULES_PATH = Joiner.on(FILE_SEPARATOR).join(new String[] {MODULES, SYSTEM, LAYERS, BASE});
     public static final String MODULES_PATH = AS_DISTRIBUTION + FILE_SEPARATOR + RELATIVE_MODULES_PATH;
+    public static File baseModuleDir = newFile(new File(PatchingTestUtil.AS_DISTRIBUTION), MODULES, SYSTEM, LAYERS, BASE);
 
     public static String randomString() {
         return UUID.randomUUID().toString();
@@ -106,7 +122,7 @@ public class PatchingTestUtil {
         StringBuilder out = new StringBuilder();
         out.append(dir.getParentFile().getAbsolutePath() + "\n");
         tree0(out, dir, 1, "  ");
-        System.out.println(out);
+        logger.info(out);
         ROOT_LOGGER.trace(out.toString());
     }
 
@@ -307,5 +323,30 @@ public class PatchingTestUtil {
             StreamUtils.safeClose(jar);
         }
         return binDir;
+    }
+
+    public static void assertPatchElements(File baseModuleDir, String[] patchElements) {
+
+        File modulesPatchesDir = new File(baseModuleDir, ".overlays");
+        if(!modulesPatchesDir.exists()) {
+            assertNull(patchElements);
+            return;
+        }
+        assertTrue(modulesPatchesDir.exists());
+        final List<File> patchDirs = Arrays.asList(modulesPatchesDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.isDirectory();
+            }
+        }));
+        if(patchElements == null) {
+            assertTrue(patchDirs.isEmpty());
+        } else {
+            final List<String> ids = Arrays.asList(patchElements);
+            assertEquals(patchDirs.size(), patchElements.length);
+            for (File f : patchDirs) {
+                assertTrue(ids.contains(f.getName()));
+            }
+        }
     }
 }
