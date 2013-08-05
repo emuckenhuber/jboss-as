@@ -31,6 +31,7 @@ import java.io.InputStream;
 
 import static org.jboss.as.patching.Constants.BASE;
 import static org.jboss.as.patching.IoUtils.mkdir;
+import static org.jboss.as.patching.IoUtils.newFile;
 import static org.jboss.as.test.patching.PatchingTestUtil.AS_DISTRIBUTION;
 import static org.jboss.as.test.patching.PatchingTestUtil.AS_VERSION;
 import static org.jboss.as.test.patching.PatchingTestUtil.CONTAINER;
@@ -134,6 +135,43 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
         return createZippedPatchFile(cpPatchDir, patchID);
     }
 
+    private File createInvalidCumulativePatch(String patchID, String asVersion, final String targetAsVersion) throws Exception {
+        String layerPatchID = randomString();
+        File cpPatchDir = mkdir(tempDir, patchID);
+
+        Asset newManifest = new Asset() {
+            @Override
+            public InputStream openStream() {
+                String line = "JBossAS-Release-Version: " + targetAsVersion;
+                return new ByteArrayInputStream(line.getBytes());
+            }
+        };
+        JavaArchive versionModuleJar = ShrinkWrap.create(JavaArchive.class)
+                .addPackage("org.jboss.as.version")
+                .addAsManifestResource(newManifest, "MANIFEST.MF");
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        versionModuleJar.as(ZipExporter.class).exportTo(baos);
+        ResourceItem versionModuleResourceItem = new ResourceItem("as-version.jar", baos.toByteArray());
+        final String versionModuleName = "org.jboss.as.version";
+        final String originalVersionModulePath = MODULES_PATH + FILE_SEPARATOR + versionModuleName.replace(".", FILE_SEPARATOR) + FILE_SEPARATOR + "main";
+
+        // create broken patch - replaced layerPatchID with patchID
+        ContentModification versionModuleModified = ContentModificationUtils.modifyModule(cpPatchDir, patchID, versionModuleName, HashUtils.hashFile(new File(originalVersionModulePath)), versionModuleResourceItem);
+        ProductConfig productConfig = new ProductConfig(PRODUCT, asVersion, "main");
+        Patch cpPatch = PatchBuilder.create()
+                .setPatchId(patchID)
+                .setDescription("A cp patch.")
+                .upgradeIdentity(productConfig.getProductName(), productConfig.getProductVersion(), targetAsVersion)
+                .getParent()
+                .upgradeElement(layerPatchID, "base", false)
+                .addContentModification(versionModuleModified)
+                .getParent()
+                .build();
+        createPatchXMLFile(cpPatchDir, cpPatch);
+        return createZippedPatchFile(cpPatchDir, patchID);
+    }
+
     /**
      * Applies one-off that adds a misc file
      * Applies one-off that adds a module
@@ -218,6 +256,57 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
         controller.start(CONTAINER);
         Assert.assertFalse("The patch " + oneOffPatchID1 + " should NOT be listed as installed",
                 CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchID1));
+        controller.stop(CONTAINER);
+    }
+
+    /**
+     * Applies one-off that adds a misc file
+     * Applies one-off that adds a module
+     * tries to apply a broken CP
+     * patch shouldn't be accepted and one-offs should stay consistent
+     * @throws Exception
+     */
+    @Test
+    public void testOneOffInvalidCumulativePatch() throws Exception {
+        String oneOffPatchID1 = randomString();
+        String oneOffPatchID2 = randomString();
+        String cpPatchID = randomString();
+        File oneOffZip1 = createOneOffPatchAddingMiscFile(oneOffPatchID1, AS_VERSION);
+        File oneOffZip2 = createOneOffPatchAddingAModule(oneOffPatchID2, AS_VERSION);
+        File cpZip = createInvalidCumulativePatch(cpPatchID, AS_VERSION, "EAP with cp patch");
+
+        // apply oneoffs
+        controller.start(CONTAINER);
+        Assert.assertTrue("Patch should be accepted", CliUtilsForPatching.applyPatch(oneOffZip1.getAbsolutePath()));
+        Assert.assertTrue("server should be in restart-required mode",
+                CliUtilsForPatching.doesServerRequireRestart());
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertTrue("The patch " + oneOffPatchID1 + " should be listed as installed",
+                CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchID1));
+        Assert.assertTrue("Patch should be accepted", CliUtilsForPatching.applyPatch(oneOffZip2.getAbsolutePath()));
+        Assert.assertTrue("server should be in restart-required mode",
+                CliUtilsForPatching.doesServerRequireRestart());
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertTrue("The patch " + oneOffPatchID2 + " should be listed as installed",
+                CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchID2));
+
+        // apply cumulative patch
+        Assert.assertFalse("Patch shouldn't be accepted", CliUtilsForPatching.applyPatch(cpZip.getAbsolutePath()));
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertTrue("The patch " + oneOffPatchID1 + " should be listed as installed",
+                CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchID1));
+        Assert.assertTrue("The patch " + oneOffPatchID2 + " should be listed as installed",
+                CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchID2));
+
+        File miscFile = newFile(new File(AS_DISTRIBUTION), "awesomeDirectory", "awesomeFile");
+        Assert.assertTrue("File " + miscFile.getAbsolutePath() + " should exist.", miscFile.exists());
+        Assert.assertEquals("Unexpected content of file: " + miscFile.getAbsolutePath(), "test content", readFile(miscFile.getAbsolutePath()));
         controller.stop(CONTAINER);
     }
 
