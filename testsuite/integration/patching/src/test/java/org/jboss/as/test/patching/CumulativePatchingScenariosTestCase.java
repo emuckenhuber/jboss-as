@@ -2,7 +2,6 @@ package org.jboss.as.test.patching;
 
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-
 import org.jboss.as.patching.HashUtils;
 import org.jboss.as.patching.metadata.ContentModification;
 import org.jboss.as.patching.metadata.Patch;
@@ -15,7 +14,16 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -23,6 +31,7 @@ import java.io.InputStream;
 
 import static org.jboss.as.patching.Constants.BASE;
 import static org.jboss.as.patching.IoUtils.mkdir;
+import static org.jboss.as.test.patching.PatchingTestUtil.AS_DISTRIBUTION;
 import static org.jboss.as.test.patching.PatchingTestUtil.AS_VERSION;
 import static org.jboss.as.test.patching.PatchingTestUtil.CONTAINER;
 import static org.jboss.as.test.patching.PatchingTestUtil.FILE_SEPARATOR;
@@ -31,6 +40,7 @@ import static org.jboss.as.test.patching.PatchingTestUtil.PRODUCT;
 import static org.jboss.as.test.patching.PatchingTestUtil.createPatchXMLFile;
 import static org.jboss.as.test.patching.PatchingTestUtil.createZippedPatchFile;
 import static org.jboss.as.test.patching.PatchingTestUtil.randomString;
+import static org.jboss.as.test.patching.PatchingTestUtil.readFile;
 
 /**
  * @author Martin Simka
@@ -292,6 +302,113 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
         Assert.assertTrue("The patch " + oneOffPatchForOldVersionWithoutCPZip + " should be listed as installed",
                 CliUtilsForPatching.getInstalledPatches().contains(oneOffPatchForNewVersionWithCPID));
         controller.stop(CONTAINER);
+    }
+
+    /**
+     * Applies CP
+     * changes standalone/configuration/standalone.xml
+     * changes domain/configuration/domain.xml
+     * changes appclient/configuration/appclient.xml
+     * does rollback of CP with --reset-configuration=true
+     * Applies CP
+     * changes standalone/configuration/standalone.xml
+     * changes domain/configuration/domain.xml
+     * changes appclient/configuration/appclient.xml
+     * does rollback of CP with --reset-configuration=false
+     * @throws Exception
+     */
+    @Test
+    public void testCumulativePatchRollbackRestoreConfiguration() throws Exception {
+        final String cpAsVersion = "EAP with cp patch";
+        String cpPatchID = randomString();
+        File cpZip = createCumulativePatch(cpPatchID, AS_VERSION, cpAsVersion);
+
+        // apply cumulative patch
+        controller.start(CONTAINER);
+        Assert.assertTrue("Patch should be accepted", CliUtilsForPatching.applyPatch(cpZip.getAbsolutePath()));
+        Assert.assertTrue("server should be in restart-required mode",
+                CliUtilsForPatching.doesServerRequireRestart());
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertTrue("The patch " + cpPatchID + " should be listed as installed",
+                CliUtilsForPatching.getCumulativePatchId().equalsIgnoreCase(cpPatchID));
+        controller.stop(CONTAINER);
+
+        // save original content of files in standalone/configuration, domain/configuration, appclient/configuration
+        final String standaloneXmlPath = AS_DISTRIBUTION + FILE_SEPARATOR + "standalone" + FILE_SEPARATOR + "configuration" + FILE_SEPARATOR + "standalone.xml";
+        final String standaloneConfOrigContent = readFile(standaloneXmlPath);
+
+        final String domainXmlPath = AS_DISTRIBUTION + FILE_SEPARATOR + "domain" + FILE_SEPARATOR + "configuration" + FILE_SEPARATOR + "domain.xml";
+        final String domainConfOrigContent = readFile(domainXmlPath);
+
+        final String appClientXmlPath = AS_DISTRIBUTION + FILE_SEPARATOR + "appclient" + FILE_SEPARATOR + "configuration" + FILE_SEPARATOR + "appclient.xml";
+        final String appClientConfOrigContent = readFile(appClientXmlPath);
+
+        changeDatasource(standaloneXmlPath);
+        changeDatasource(domainXmlPath);
+        changeDatasource(appClientXmlPath);
+
+        controller.start(CONTAINER);
+        // rollback with reset-configuration=true
+        Assert.assertTrue("Rollback should be accepted", CliUtilsForPatching.rollbackCumulativePatch(true));
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertEquals("File should be restored", standaloneConfOrigContent, readFile(standaloneXmlPath));
+        Assert.assertEquals("File should be restored", domainConfOrigContent, readFile(domainXmlPath));
+        Assert.assertEquals("File should be restored", appClientConfOrigContent, readFile(appClientXmlPath));
+
+        // apply cumulative patch
+        Assert.assertTrue("Patch should be accepted", CliUtilsForPatching.applyPatch(cpZip.getAbsolutePath()));
+        Assert.assertTrue("server should be in restart-required mode",
+                CliUtilsForPatching.doesServerRequireRestart());
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertTrue("The patch " + cpPatchID + " should be listed as installed",
+                CliUtilsForPatching.getCumulativePatchId().equalsIgnoreCase(cpPatchID));
+        controller.stop(CONTAINER);
+
+        changeDatasource(standaloneXmlPath);
+        changeDatasource(domainXmlPath);
+        changeDatasource(appClientXmlPath);
+
+        controller.start(CONTAINER);
+        // rollback with reset-configuration=false
+        Assert.assertTrue("Rollback should be accepted", CliUtilsForPatching.rollbackCumulativePatch(false));
+        controller.stop(CONTAINER);
+
+        controller.start(CONTAINER);
+        Assert.assertNotEquals("File shouldn't be restored", standaloneConfOrigContent, readFile(standaloneXmlPath));
+        Assert.assertNotEquals("File shouldn't be restored", domainConfOrigContent, readFile(domainXmlPath));
+        Assert.assertNotEquals("File shouldn't be restored", appClientConfOrigContent, readFile(appClientXmlPath));
+        controller.stop(CONTAINER);
+
+
+    }
+
+    private void changeDatasource(String filePath) throws Exception {
+        // modify xml
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        Document document = documentBuilder.parse(filePath);
+
+        NodeList nodeList = document.getElementsByTagName("datasource");
+
+        if(nodeList.getLength() < 1) {
+            throw new IllegalStateException("unexpected count of datasources");
+        }
+
+        Node node = nodeList.item(0);
+        Node attributeNode = node.getAttributes().getNamedItem("jndi-name");
+        attributeNode.setNodeValue("java:jboss/datasources/changedDS");
+
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        DOMSource domSource = new DOMSource(document);
+        StreamResult streamResult = new StreamResult(new File(filePath));
+        transformer.transform(domSource, streamResult);
     }
 
 
