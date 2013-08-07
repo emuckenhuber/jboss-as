@@ -12,6 +12,7 @@ import org.jboss.shrinkwrap.api.asset.Asset;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
@@ -267,6 +268,7 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
      * @throws Exception
      */
     @Test
+    @Ignore("WFLY-1823")
     public void testOneOffInvalidCumulativePatch() throws Exception {
         String oneOffPatchID1 = randomString();
         String oneOffPatchID2 = randomString();
@@ -321,6 +323,7 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
      * @throws Exception
      */
     @Test
+    @Ignore("waiting for new version of jboss-modules")
     public void testApplyOneOffToWrongTargetVersion() throws Exception {
         final String cpAsVersion = "EAP with cp patch";
         String oneOffPatchForOldVersionWithoutCPID = randomString();
@@ -407,6 +410,7 @@ public class CumulativePatchingScenariosTestCase extends AbstractPatchingTestCas
      * @throws Exception
      */
     @Test
+    @Ignore("WFLY-1822")
     public void testCumulativePatchRollbackRestoreConfiguration() throws Exception {
         final String cpAsVersion = "EAP with cp patch";
         String cpPatchID = randomString();
