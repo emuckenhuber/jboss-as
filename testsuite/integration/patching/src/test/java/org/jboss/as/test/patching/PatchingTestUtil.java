@@ -21,18 +21,6 @@
 
 package org.jboss.as.test.patching;
 
-import com.google.common.base.Joiner;
-
-import org.jboss.as.patching.Constants;
-import org.jboss.as.patching.DirectoryStructure;
-import org.jboss.as.patching.IoUtils;
-import org.jboss.as.patching.ZipUtils;
-import org.jboss.as.patching.metadata.Patch;
-import org.jboss.as.patching.metadata.PatchXml;
-import org.jboss.as.process.protocol.StreamUtils;
-import org.jboss.logging.Logger;
-import org.junit.Assert;
-
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
@@ -49,6 +37,19 @@ import java.util.UUID;
 import java.util.jar.Attributes.Name;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
+
+import com.google.common.base.Joiner;
+
+import org.jboss.as.patching.Constants;
+import org.jboss.as.patching.DirectoryStructure;
+import org.jboss.as.patching.IoUtils;
+import org.jboss.as.patching.ZipUtils;
+import org.jboss.as.patching.metadata.Patch;
+import org.jboss.as.patching.metadata.PatchXml;
+import org.jboss.as.process.protocol.StreamUtils;
+import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
+import org.junit.Assert;
 
 import static java.lang.String.format;
 import static org.jboss.as.patching.Constants.BASE;
@@ -359,6 +360,15 @@ public class PatchingTestUtil {
             final File overlays = new File(root, Constants.OVERLAYS);
             IoUtils.recursiveDelete(overlays);
         }
+    }
+
+    public static boolean isOneOffPatchContainedInHistory(List<ModelNode> patchingHistory, String patchID) {
+        boolean found = false;
+        for(ModelNode node : patchingHistory) {
+            if(node.get("one-off").asString().equals(patchID))
+                found = true;
+        }
+        return found;
     }
 
 }
