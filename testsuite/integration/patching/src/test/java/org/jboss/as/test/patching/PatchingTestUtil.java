@@ -372,7 +372,7 @@ public class PatchingTestUtil {
     }
 
     public static void resetInstallationState(final File home, final File... layerDirs) {
-        final File installation = new File(home, Constants.INSTALLATION_METADATA);
+        final File installation = new File(home, Constants.INSTALLATION);
         IoUtils.recursiveDelete(installation);
         for (final File root : layerDirs) {
             final File overlays = new File(root, Constants.OVERLAYS);
