@@ -27,6 +27,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.BLO
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.COMPOSITE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CONCURRENT_GROUPS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IF_REQUIRED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IN_SERIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAX_FAILURE_PERCENTAGE;
@@ -48,6 +49,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STE
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+import static org.jboss.as.test.integration.domain.management.util.DomainTestUtils.executeForFailure;
 import static org.jboss.as.test.integration.domain.management.util.DomainTestUtils.executeForResult;
 import static org.jboss.as.test.integration.domain.management.util.DomainTestUtils.startServer;
 import static org.jboss.as.test.integration.domain.management.util.DomainTestUtils.waitUntilState;
@@ -212,6 +214,7 @@ public class ServerRestartRequiredTestCase {
         reloadIfRequired.get(OP).set("reload-servers");
         reloadIfRequired.get(OP_ADDR).add(SERVER_GROUP, "reload-test-group");
         reloadIfRequired.get(BLOCKING).set(true);
+        reloadIfRequired.get(IF_REQUIRED).set(true);
 
         // Reload
         executeForResult(reloadIfRequired, client);
