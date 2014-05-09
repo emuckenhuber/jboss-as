@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.jboss.as.controller.ControllerMessages;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
@@ -46,6 +45,7 @@ import org.jboss.as.controller.access.AuthorizationResult;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.common.ControllerResolver;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
@@ -89,7 +89,7 @@ public class GenericModelDescribeOperationHandler implements OperationStepHandle
         final PathAddress address = PathAddress.pathAddress(operation.require(ModelDescriptionConstants.OP_ADDR));
         final AuthorizationResult authResult = context.authorize(operation, DESCRIBE_EFFECTS);
         if (authResult.getDecision() != AuthorizationResult.Decision.PERMIT) {
-            throw ControllerMessages.MESSAGES.unauthorized(operationName, address, authResult.getExplanation());
+            throw ControllerLogger.ROOT_LOGGER.unauthorized(operationName, address, authResult.getExplanation());
         }
         final PathAddressFilter filter = context.getAttachment(PathAddressFilter.KEY);
         if (filter != null && ! filter.accepts(address)) {

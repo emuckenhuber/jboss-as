@@ -188,6 +188,14 @@ final class OperationContextImpl extends AbstractOperationContext {
         return attachments.getInputStreams().get(index);
     }
 
+    @Override
+    protected boolean continueProcessing(Stage stage) {
+        if (stage == Stage.RUNTIME && contextFlags.contains(ContextFlag.MODEL_ONLY)) {
+            return false;
+        }
+        return true;
+    }
+
     public int getAttachmentStreamCount() {
         return attachments == null ? 0 : attachments.getInputStreams().size();
     }

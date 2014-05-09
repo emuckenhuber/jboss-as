@@ -118,7 +118,7 @@ abstract class AbstractOperationContext implements OperationContext {
     private final AuditLogger auditLogger;
 
     enum ContextFlag {
-        ROLLBACK_ON_FAIL, ALLOW_RESOURCE_SERVICE_RESTART,
+        ROLLBACK_ON_FAIL, ALLOW_RESOURCE_SERVICE_RESTART, MODEL_ONLY,
     }
 
     AbstractOperationContext(final ProcessType processType, final RunningMode runningMode,
@@ -144,6 +144,10 @@ abstract class AbstractOperationContext implements OperationContext {
         }
         initiatingThread = Thread.currentThread();
         this.callEnvironment = new Environment(processState, processType);
+    }
+
+    protected boolean continueProcessing(final Stage stage) {
+        return true;
     }
 
     @Override
@@ -473,6 +477,9 @@ abstract class AbstractOperationContext implements OperationContext {
                             }
                             return;
                         }
+                    }
+                    if (!continueProcessing(currentStage)) {
+                        currentStage = Stage.DONE;
                     }
                 }
             } else {
